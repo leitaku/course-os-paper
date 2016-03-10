@@ -1,6 +1,3 @@
-# cse221-paper
-CSE221 Paper Summary
-
 # os-notes
 All pdfs and notes in this repository are publicly available online.
 
@@ -17,9 +14,9 @@ All pdfs and notes in this repository are publicly available online.
 * 01_26_01_pilot
 * 01_26_02_rethinkingsoftwarestack
 * 01_28_01_monitors_p549-hoare
-* 01_28_02_Mesa_p105-lampson
-* 02_02_01_Virtual_memory_01653971
-* 02_02_02_Machine_independent_vm_p31-rashid
+* 01_28_02_mesa_p105-lampson
+* 02_02_01_virtual_memory_01653971
+* 02_02_02_machine_independent_vm_p31-rashid
 * 02_04_01_v_kernel_p129-cheriton
 * 02_04_02_sprite-ieee-computer88
 * 02_09_02_p201-feeley
