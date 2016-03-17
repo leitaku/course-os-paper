@@ -1,12 +1,15 @@
 The Distributed V Kernel and its Performance for Diskless Workstations
 
 1. Introduction 	
-
 V kernel	
  -message oriented kernel	
  -provides uniform local and network interprocess communication
  -Thoth model adopted
-
+Advantages
+ -Lower hardware cost per workstation
+ -simpler maintenance and economies of scale with shared file server.
+ -Little or non memory or processing overhead on the workstation for file system.
+ -Fewer problems with replication, consistency and distribution of files.
 This paper challenges the controversial on:
  -Distributed file system with diskless workstations
  -The use of general purpose interprocess communication facility
@@ -14,15 +17,13 @@ This paper challenges the controversial on:
  -The use of synchronous request-response model (RPC model) of message-passing and data transfer instead of streaming protocol
 
 2. V Kernel Interprocess Communication
-
 IPC between processes in V kernel - RPC like communication	
  -Client: send a message	
  -Server: receive the message
  -Server: optional data transfer using MoveFrom
  -Server: process the request from the client	
  -Server: optional data transfer using MoveTo	
- -Receiver: send reply
-	
+ -Receiver: send reply	
 All messages are 32 bytes long	
 V kernel directly copies data from sender's address space to receiver's address space
  -No copies between user space to/from kernel space!
@@ -38,15 +39,100 @@ Send(message, pid)
  -sender blocks until reply message is returned
  -reply message overwrites the original message area
  -receiver may read from or write to the segment given in the message: see MoveTo, MoveFrom, and ReplyWithSegment
-	
 pid = Receive(message)
  -blocks calling process until a message is received
  -pid = pid of sender
-
 (pid, nbytes) = ReceiveWithSegment(msg, buf, len)
  -same as Receive
  -copy: buf[0 ~ len] <- msg's segment, if a segment is in msg
  -nbytes = actual number of bytes copied
  -This primitive is introduced to reduce the number of messages
-	
 Reply(message, pid)
+ -message: reply message
+ -non-blocking operation
+ReplyWithSegment(message, pid, destptr, segptr, segsize)
+ -send message to pid
+ -copy: destptr <- segptr[0 ~ segsize]
+ -destptr: original sender's address space
+MoveFrom(srcpid, dest, src, count)
+ -copy: dest <- src[0 ~ count]
+ -src: address space of srcpid
+ -dest: address space of calling process
+ -srcpid must have given read access for src to this process using 'Send'
+MoveTo(destpid, dest, src, count)
+ -copy: dest <- src[0 ~ count]
+ -src: address space of calling process
+ -dest: address space of destpid
+ -destpid must have given write access for dest to this process using 'Send'
+
+2.2 Discussion
+Pros
+ -Synchronous request-response model makes programming easy due to its similarity to procedure call
+ -Distinction between small message (send, receive, reply, ...) and a separate data transfer (moveto, movefrom, ...) is good
+ -Synchronous communication (stop-and-wait), small fixed message: make buffering easy -> leads small kernel
+ -Direct copy between user spaces: no extra copies between user & kernel space
+Cons
+ -Message is even smaller than the min packet of Ethernet -> leads padding -> inefficient use of bandwidth
+ -Stop-and-wait: reduce parallelism
+ -Separate data transfer command -> increase the number of operations going: send(msg) -> moveto -> reply
+
+3 Implementation issues
+General measures taken to achieve efficiency
+ -Remote operations are implemented directly in the kernel: no context switch to network process
+ -Raw Ethernet packets are used instead of IP-packet: similar hacking as RPC
+ -Stop-and-wait as reliable service: also similar to RPC connectionless reliable protocol
+ -pid: host id + process id
+ -Data transfer (MoveTo, MoveFrom): no packet-level ack, message-level ack = single ack per MoveTo or MoveFrom
+ -ReceiveWithSegment & ReplyWithSegment are introduced to reduce packet numbers
+
+3.1 Process Naming
+32-bit pid: 16-bit host-id + 16-bit process id: unique within the context of local network
+ -host-id in 3Mb Ethernet: 8 bit network address + host id
+ -host-id in 10Mb Ethernet: mapping table from logicalid to network address
+GetPid
+ -look up local mapping table
+ -if not mapping found, broadcast a message asking network address for the logicalid
+
+3.2 Remote Message Implementation
+Send(message, pid) -> check if pid is for local process -> if fails, call NonLocalSend
+ => send a packet to the receiving pid or boadcast it, if network address of the pid is unknown
+ -> receiving host creates an 'alien' process descriptor -> saves the message into the buffer of the 'alien'
+ -> virtual interaction between 'alien' process and the actual receiving process
+ -> receiver process replies: reply message sent to the sender + cached in 'alien' space
+ -> timeout, retransmission, and RPC-probe-like message are handled between 'alien' and sender
+
+3.3 Remote Data Transfer
+ -Single ack per moveto or movefrom => indifinitely large packet size -> requires very reliable network
+ -Error -> retransmission of all packets
+ -Measure has been taken to cope with back-to-back failure at the same packet
+ -Direct copy between network interface and source or destination process address space: need to use programmed I/O
+
+3.4 Remote Segment Access
+In distributed file system, lots of page read/write are going on. In Throth model, a single page write is composed of:send -> receive -> movefrom = page transfer -> reply
+ -ReceiveWithSegment: receive a packet which consists of the message and the very first part of the segment
+Hence, if the packet is big enough to contain the message and a page,
+ -page write reduces to Send -> ReceiveWithSegement -> Reply
+ -page read: Send -> Receive -> ReplyWithSegment
+ => Original send should be changed
+
+Look up performance in the paper
+4. Network Penalty: Reasonable Lower-Bound of Communication
+5. Kernel Performance
+5.1 Measurement Methods
+5.2 Kernel Measurements
+5.3 Interpreting the Measurements
+5.4 Multi-Process Traffic
+6. File Access Using the V Kernel
+6.1 Page-level File Access: Random Page Access
+6.2 Sequential File Access
+6.3 Program Loading
+7. File Server Issues
+8. Measurements with the 10Mb Ethernet
+
+9 Evaluation:
+Pros:-Direct data copy between sender and receiver
+ -Separation of short message and bulk data transfer
+Cons:-No flow control: network congestion especially at the server side will aggravate the problem
+ -Lots of hacking similar to RPC
+ -Only works within local network
+
