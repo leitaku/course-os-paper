@@ -2,7 +2,7 @@
 All pdfs and notes in this repository are publicly available online.
 
 ## list of documents
-01_07_01_the_multiprogramming
+*01_07_01_the_multiprogramming
 01_07_02_nucleus
 01_12_01_tenex
 01_12_02_hydra
