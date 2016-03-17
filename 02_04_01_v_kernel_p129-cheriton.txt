@@ -1,1 +1,52 @@
 The Distributed V Kernel and its Performance for Diskless Workstations
+
+1. Introduction 	
+
+V kernel	
+ -message oriented kernel	
+ -provides uniform local and network interprocess communication
+ -Thoth model adopted
+
+This paper challenges the controversial on:
+ -Distributed file system with diskless workstations
+ -The use of general purpose interprocess communication facility
+ -The use of Thoth-like interprocess communication model
+ -The use of synchronous request-response model (RPC model) of message-passing and data transfer instead of streaming protocol
+
+2. V Kernel Interprocess Communication
+
+IPC between processes in V kernel - RPC like communication	
+ -Client: send a message	
+ -Server: receive the message
+ -Server: optional data transfer using MoveFrom
+ -Server: process the request from the client	
+ -Server: optional data transfer using MoveTo	
+ -Receiver: send reply
+	
+All messages are 32 bytes long	
+V kernel directly copies data from sender's address space to receiver's address space
+ -No copies between user space to/from kernel space!
+ -Compare this to LRPC
+
+2.1 Primitives
+Send(message, pid)	
+ -pid(32-bit): pid of receiver process
+ -message(32-byte): flag + access right + ... + segment addr + segment length
+	--flag: whether the segment is given in this message or not
+	--access right: access right to the segment
+	--segment: a part of address space of sender which sender wants receiver to access
+ -sender blocks until reply message is returned
+ -reply message overwrites the original message area
+ -receiver may read from or write to the segment given in the message: see MoveTo, MoveFrom, and ReplyWithSegment
+	
+pid = Receive(message)
+ -blocks calling process until a message is received
+ -pid = pid of sender
+
+(pid, nbytes) = ReceiveWithSegment(msg, buf, len)
+ -same as Receive
+ -copy: buf[0 ~ len] <- msg's segment, if a segment is in msg
+ -nbytes = actual number of bytes copied
+ -This primitive is introduced to reduce the number of messages
+	
+Reply(message, pid)
