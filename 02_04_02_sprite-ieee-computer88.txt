@@ -1,0 +1,77 @@
+The Sprite Network Operating System
+
+1. Intro
+Capitalize on three technology trends:
+ -Fast local networks: take advantage of communication to make a set of machines look like one (network transparency) big time-shared machine
+ -Large memories: do lots of file caching
+ -Multiprocessors: build OS to take advantage of them (authors believed every desktop would become a multiprocessor)
+Approach: Keep OS interface same (BSD UNIX), but modify implementation to address above goals.Add the following to the OS interface & impl to support sharing:
+ -transparent network file system (all clients store files on servers; many of their workstations were diskless; all clients share server disks),
+ -write memory sharing for multiple processes on a single workstation (processes on a given machine share memory)
+ -process migration (sharing CPU across all machines)
+Implementation:
+ -Supported kernel-to-kernel RPC (only used by kernels; OS is not message passing based, but is kernel call based; contrast with Mach, V)
+ -Prefix tables (supported dynamic reconfiguration of mount points on distributed FS)
+ -File caches on servers and clients
+ -VM system uses file for backing storage
+ -Processes behave the same whether migrated or not
+
+2.1 File System
+ -Network transparent (system calls for manipulating files are same regardless of where file is on the network)
+ -Name transparent (name of file is same regardless of which machine on the network it is actually stored on; can move files from one machine to another w/o changing name)
+ -In Sprite, entire FS is shared, whereas in AFS/NFS, only parts of the FS are shared and machines can still have files on a local disk that no one else can access; not so in Sprite. (This is used to help implement process migration.)Both Sprite and LOCUS provide a single file hierarchy accessible from all workstations.
+
+2.2 Shared Address Spaces
+Implemented in OS in anticipation of multiprocessors. -Parent process could fork a child and specify if child should share data (static data + heap). -Code segment was shared read only. -Data segment was shared read-write.
+Regarding memory sharing, Sprite provided calls that allowed processes to be put to sleep & awoken, but no locking primitives provided by the kernel. -Sync impl on top of test-and-set so that context switch to kernel does not need to be made for thread operations.
+
+2.3 Process Migration
+Calls forwarded to home machine when need to access I/O device on home machine? Not necessarily.Devices are just special files on the unified filesystem hierarchy... they should be accessible from any machine.
+Processes that share and address space must be migrated together.
+OS provides calls to migrate processes.
+Migrated process still appears to be running on home machine (i.e., when user runs ps), but really is running elsewhere on an idle machine. Transparency results are same as if process was executed on home machine.
+
+3 Kernel Structure
+3.1 Multi-threading
+Kernel was multi-threaded does not have one big lock that everyone blocks on like in UNIX or Linux,  they can execute kernel code at the same time. Else multiple threads could only execute concurrently while is user mode.
+
+3.2 Remote Procedure Call
+efficient for request-response transaction.Consists of stubs and RPC transport. See Fig3.
+It delivers message across the network and assigns incoming requests to kernel process that execute the server stub and called procedure.
+used implicit acknowledgement (responses ACK requests) and fragmentation (used to ship large blocks of data; i.e. VM pages during process migration)
+
+4 Prefix tables
+Table seached for longest pathname match during name resolution. Either server returns a number corresponding to resolved file, or remaining part of path that needs to be resolved that is outside of its domain.� If given a pathname for which there is no prefix table entry, request is broadcasted so that server that manages that domain responds, and new prefix table entry is made.
+
+5 Caches
+ -Advantages of caches: reduce network communication, reduce load on servers. Disadvantage: need to run consistency protocol.
+ 
+Sprite gives better consistency than NFS: NFS files are opened, and client can see stale data until file is closed and reopened. Sprite always gives client most recently updated blocks.
+Sprite FS- block-based like NFS; entire files not cached.
+ -Sequential write shared handled using version numbers.On open, client notifies server, and uses its cached version if server does not tell it about a more recent version number.
+ When a client that is not the last writer opens a file, the server forces the last writer to flush any modified pages.
+ -Concurrent write-sharing (two clients have file open at same time), client caching is disabled.
+ Disadvantages: bad performance for concurrent write sharing case.� clients must contact servers on opens.
+This scheme only provides consistency; FS_Lock provided for synchronization.
+ 
+6 Virtual Memory
+6.1 Backing storage for each machine is on network file server.
+ Advantages: Simplifies process migration, VM system can reuse existing FS syscalls, don't have to preallocate a static amount of disk space for swap space.
+ Since servers have large caches, VM pages can be read from servers faster than accessing local disk due to fast networks and slow disks (seek time).
+6.2 Sticky segments don't swap out programs code when execution completes until it becomes least 	  recently used segment; this allows new process to start up quickly if code is still in memory.
+6.3 Double-Caching
+Since VM uses FS, pages could get doubly cached in FS cache and VM address space. Careful implementation required. Solution: VM system bypasses local file cache when reading/writing backing files. Backing files are cached on servers.However, servers do not cache backing files for their own processes.
+6.4 VM-FS Negotiation
+VM / FS Physical Memory sharing: The amount of physical memory allocated to VM and FS can change dynamically in Sprite. For processes that are memory intensive (simulations), most of memory gets used for VM pages. For processes that are disk I/O intensive (databases), most of memory becomes a file cache. This is impelemented as follows: whenever a page needs to get kicked out of physical memory, the oldest VM page is compared with the oldest file cache page, and the oldest out of either of them are thrown out.
+
+7 Process Migration
+Sprite: dirty pages are sent to server, code segment is reused if it already exists on target machine, or is loaded from backing store server, and data is demand paged from backing store
+advantages: requires less total data to be copied than V, does not require old machine to server page faults; disadvantages: process is frozen longer than in V or Accent.
+Process migration criterion: transparency, time to kick process off old machine, time that process is frozen, time old machine is servicing pages after migration. Sprite: Machine specific calls in the migrated process are forwarded to home machine to achieve transparency. (done using kernel-to-kernel RPC)
+
+
+
+
+
+
+
