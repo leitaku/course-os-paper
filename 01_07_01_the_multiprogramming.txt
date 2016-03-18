@@ -1,0 +1,179 @@
+The Structure of the “THE”- Multiprogramming System
+========================================================================
+Early systems
+	OPERATOR TAKES 1 PROGRAM
+Problems:
+	CPU time is expensive. CPU is forced to run at speed of peripheral
+	Only one program can run at a time. Long wait for users to get program output
+FEEDS IT TO THE COMPUTER
+WAITING FOR THEIR TURN
+Computer processes the input
+OUTPUT
+Operator collects Output
+The structure of the the multiprogramming system
+========================================================================
+Goal:
+	Design a system to process continuous flow of user programs
+Design objectives:
+	Reduce turnaround-time for short programs
+	Economic use of peripherals
+	Automatic control of backing store combined with economic use of CPU
+	Support applications that only require the flexibility of general purpose processor
+========================================================================
+Challenges & Solutions:
+	Ease of System design and validation
+		Layered System design
+	Resource management among programs
+		Abstraction of HW at each layer
+	Race conditions
+		Semaphores
+	Short Response-time
+		Priority Scheduling
+	Fairness of Scheduling
+		Real-time Clock interrupts
+========================================================================
+Tool:
+EL X8 (N.V. Electrologica, Rijswijk)
+	Core Memory 32K (=> Present day Main memory)
+	Drum 512K words (=> Present day Hard Disk Drive)
+	Indirect addressing for stack implementation
+	Sound mechanism to handle I/O and interrupts
+	Peripherals: Tape readers, punches, Teleprinter …
+System Software:
+	OS Programmed in Assembly instructions
+	User programs written in ALGOL 60
+========================================================================
+Processor Allocation:
+	In a single sequential process, correctness of program is dependent on sequence of 		event execution
+		Speed of execution doesn’t affect correctness
+		In THE, whole system is designed as a harmonious society of cooperating 			sequential processes progressing at undefined speeds
+	What constitutes a process in ‘THE’?
+		Each user program
+		Each input peripheral & Each output peripheral
+		Segment controller & message interpreter
+	Virtualization of CPU is achieved
+		Processes cooperate with each other through mutual synchronization
+			Semaphores
+		Number of cooperating processes is independent of number of actual physical 			processors in the system
+========================================================================
+Storage Allocation:
+	‘THE’ implements automatic control of secondary storage
+	Memory Units: Smallest unit is called Page
+		Core Pages: Pages in main memory
+		Drum Pages: Pages in drum (hard disk)
+	Information unit: Segments (> Level 1 perspective)
+		One segment fits in one page (Virtual Page)
+		Number of Virtual Pages is much greater than physical pages (core and drum)
+	Segment identifier contains a segment variable in core
+		Segment variable provides the page number where the segment can be found
+	Consequences:
+		When core page is dumped to drum, the page need not be returned to the same 			drum page from which it came
+			Free drum page with least latency time is selected
+		Program pages need not be stored in consecutive drum pages
+	Total abstraction of memory locations from programs
+		Thus, primitive version of Virtual memory management was achieved
+Layer 4
+User process requests Memory access;
+Provides Segment identifier
+
+Layer 3
+Control transferred to Layer 1
+
+Layer 2
+
+Layer 1
+Process reads SegVar to identify page by reading Core Table Entry.
+
+Layer 0
+CORE MEMORY (512 WORDS)
+If Page present in core, segment provided to user program;
+Else, “Segment Controller” initiates transfer of page from drum to core.
+Drum issues interrupt when transfer is complete. Segment Controller returns data to program.
+DRUM MEMORY (512K WORDS)
+
+========================================================================
+System Hierarchy:
+	‘THE’ system follows strict hierarchy
+	Broken into levels from 0 to 5
+	Higher level can talk only to level below
+		Communication happens in one direction only
+Advantages:
+	Each layer can be validated individually for correctness before implementing next layer
+	Abstraction of hardware information from layer above
+========================================================================
+‘THE’ System Structure
+LEVEL 0
+Tasks:
+	CPU allocation to processes
+	Real-time clock interrupt scheduling (Timer ticks)
+	Priority scheduling for quick response to the system
+	Synchronization among processes
+Provides CPU Abstraction to higher layers
+LEVEL 1
+Tasks:
+	Perform memory accesses
+	Synchronizes drum interrupt and processes on higher levels
+	Manage segment information
+Provides Abstraction of memory to higher layers
+LEVEL 2
+Tasks:
+	Message interpreter
+	Allocation of console Keyboard to processes
+	Processes above Level 2 think they have exclusive access to console
+Provides Abstraction of console to higher layers
+LEVEL 3
+Tasks:
+	Buffering input streams
+	Unbuffering output streams
+	Manages all “logical communication units”
+Provides Abstraction of peripherals to higher layers
+LEVEL 4
+	Independent User programs run at this layer
+Programs written in ALGOL 60
+LEVEL 5
+	End- User
+
+========================================================================
+Synchronization:
+	Processes are synchronized via “Semaphores”
+		Semaphore initialized as special integer variables before they can be used by 			processes
+		2 Operations on semaphores: P (wait) and V (signal)
+	It was observed that semaphore was used in 2 ways:
+		Mutual exclusion (Semaphore initialized with value 1)
+		Private Semaphore (Semaphore initialized with value 0)
+========================================================================
+Validation:
+Two kinds of validation:
+	Logical soundness before implementation
+		Harmonious Cooperation of processes
+	Thorough verification of each layer
+		Layer by Layer testing of software
+========================================================================
+Harmonious co-operation:
+	Sequential process in the system can be regarded as “cyclic process”
+		All processes when at rest are at a neutral point – “Homing position”
+	Harmonious cooperation is proved in 3 stages:
+		Process performing task can only generate finite tasks for other processes
+			In ‘THE’, higher layer can only generate task for lower layers
+		All processes cant be in “homing position” if there is a pending task in system
+		After acceptance of initial task, all processes eventually return to homing 				position.
+			“Circular waits” has to be prevented from occurring ;
+			Else “Deadly Embrace” can result
+
+========================================================================
+Software Testing:
+	Validation of system was done in layers
+	Starting at Level 0 , each layer was thoroughly tested
+		Next layer is added after previous layer’s been validated completely
+		Test structure forces the system into all different relevant states and verified if the 		system performs according to specification
+	Hardware failures couldn’t restrict system validation due to hierarchical design of system
+========================================================================
+Summary:
+Layered OS design helped in abstraction of hardware resources to programs
+	Level 0: Abstracted processor
+	Level 1: Abstracted Memory through segments
+	Level 2: Abstracted console
+	Level 3: Abstracted peripherals
+Sequential processes collaborated with each other “harmoniously” through Synchronization
+	Mutual Exclusions and Private Semaphores
+SW memory segmentation achieved optimal use of core and drum memory
