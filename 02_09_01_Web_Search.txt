@@ -1,0 +1,30 @@
+Web Search For A Planet the Google Cluster Architecture
+
+1 Intro
+ The problem:
+ A distributed cluster which has the desirable properties of a distributed system that we talked about in the class. Of course, the desirable properties are defined subject to the particular application that they have and the scale of their service.
+ 
+ The most important factor for their design is price / performance ratio, Energy efficiency is part of the price.
+ Two main insights:
+ Provide reliability through software instead of expensive hardware
+ -the expensive hardware is going to fail sometimes anyway, even if it’s a software or human error
+ -Optimize for aggregate throughput, not peak response time
+ 
+2 Contributions
+ Scalability: Their system is scalable in a sense that they can easily add servers and they can accommodate increased load. They do that by horizontal scalability and adding nodes of the same size
+
+ Handling failures: This is an important part of their design as they have frequent failures in their cluster and these failures are in nature partial failures. Since they do replicate the data, they can tolerate partial failures until the broken node comes up.
+
+ Speed: They geographically distribute their clusters, so that people from around the world get a low latency. They also use extensive amount of parallelization in computation of the result.
+
+ Consistency: They sort of can ignore this factor as they assume updates are infrequent.
+
+ By using commodity PCs where computation is cheap, they can use more intensive ranking and a larger index. This includes depreciation, hosting, administration, repairs, power, and cooling
+
+ The authors posit that the cost of organizing 1000 servers is not much more than 100 servers. Once you are at a certain scale, it’s pretty cheap to deal with more servers.
+
+3. More hardware problem:	
+ While they can pack a lot more processing power into a rack, conventional DCs can’t support the electricity and cooling power density required
+ They measure watts per unit of performance and not just watts
+ They noticed that they have a high CPI, even on Pentium 4 with deep pipelines and advanced branch predictors
+ The authors say this is because their application does not have a lot of Instruction-Level Parallelism. It’s better to pack many smaller cores on the same dieTheir application does not benefit from temporal locality (they are scanning though a huge index) It does benefit from spatial locality. They suggest that larger cache lines could really help them
