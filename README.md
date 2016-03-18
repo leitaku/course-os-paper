@@ -2,14 +2,19 @@
 All pdfs and notes in this repository are publicly available online.
 
 ## list of documents
+---
+Meng:
 * 01_07_01_the_multiprogramming
 * 01_07_02_nucleus
 * 01_12_01_tenex
 * 01_12_02_hydra
 * 01_14_01_protection
 * 01_14_02_multics
+---
 * 01_19_01_unix_timeshare
 * 01_19_02_plan_9_bell_labs
+---
+Mengqi
 * 01_26_01_pilot
 * 01_26_02_rethinkingsoftwarestack
 * 01_28_01_monitors_p549-hoare
