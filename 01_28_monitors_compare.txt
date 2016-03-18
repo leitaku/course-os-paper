@@ -1,0 +1,24 @@
+There are two flavors of monitors that differ in the scheduling semantics of signal()
+1.Hoare monitors (original)
+» signal() immediately switches from the caller to a waiting thread
+» The condition that the waiter was anticipating is guaranteed to hold when waiter executes
+» Signaler must restore monitor invariants before signaling
+2.Mesa monitors (Mesa, Java)
+» signal() places a waiter on the ready queue, but signaler continues inside monitor
+» Condition is not necessarily true when waiter runs again
+    a.Returning from wait() is only a hint that something changed
+    b.Mustrecheckconditionalcase
+
+Hoare:
+if (empty)
+  wait(condition);
+Mesa:
+while (empty)
+  wait(condition);
+
+Tradeoffs
+1.Mesa monitors easier to use, more efficient
+    Fewer context switches, easy to support broadcast
+2.Hoare monitors leave less to chance
+    Easier to reason about the program
+
