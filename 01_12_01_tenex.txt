@@ -1,0 +1,72 @@
+TENEX, a Paged Time Sharing System for PDP-10
+
+time sharing system
+
+It was developed because no existing system of the appropriate size and cost could meet the requirements of the research projects at BBN.
+
+Design Goal:
+  1. State of the art virtual machine.
+  2. Good human engineering throughout system.
+  3. The system must be implementable, maintainable, and modifiable.
+
+The BBN Pager:
+  An interface between the PDP-10 processor and the memory bus. It provides individual mapping (relocation) of each page of both user and monitor address spaces using separate maps for each. The pager uses "associative registers" and core memory tables to store the mapping information. 
+  On each memory request from the processor, the 9 high-order bits of the address and the request-type level are compared in parallel with the contents of each associative register. 
+
+  "copy-on-write" facility allows users to share large portions of an address space containing procedures and data, and to obtain private copies of only those pages which are changed. (implemented through an independent per-page status bit)
+
+  The pager maintains a record of the activity of the pages in core memory in a "core status" table.
+
+Processor Modifications:
+  JSYS: a new system call instruction, provides an independent transfer mechanism into the monitor. 
+  A context, either user or monitor, for each instruction execution. 
+
+The TENEX Virtual Machine:
+  The contents of the virtual memory are specified by the virtual memory map which the user may read or write via monitor calls.
+  A private page is automatically created whenever a process makes a reference to a page for which the map slot is empty.
+
+  Job: a set of one or more hierarchically related processes.
+
+  Heirarchy:
+    A process always has exactly one immediately superior process and may have one or more inferior processes. 
+    Two processes are said to be parallel if they have the same immediate superior. 
+    A process can communicate with other members of the structure by (a) sharing memory (b) direct control or (c) pseudo interrupts.
+
+  Pseudo Interrupt:
+    an asynchronous signal
+
+User Interaction with TENEX:
+  Terminal service module designed to:
+    provide any type of interactive behavior a program might find useful;
+    benefit by having many short interactions with the user;
+    the user can in fact anticipate the machine's responses and begin typing input before output is completed.
+
+TENEX File System:
+  provide symbolic file name management:
+    translation of a symbolic name into an internal "file descriptor block" pointer associated with that name;
+    checking information.
+
+  file descriptor: device name, directory name, file name, extension, version number. 
+  Any of the fields of a file description may be abbreviated except for device and version.
+
+  Access to a file depends on two things: 
+    the kind of access desired;
+    the relation of the program making the access to the owner of the file.
+
+  Five kind of access: directory listing, read, write, execute, append.
+
+The Monitor:
+  TENEX scheduler is designed to meet a set of potentially conflicting requirements:
+    provide an equitable distribution of CPU service;
+    identify and give prompt service to jobs making interactive requests;
+    make efficient use of core memory to maximize CPU usage; 
+    have provision for administratively controlling the allocation of resources.
+
+  1. Balance Set Scheduling: maximize system efficiency.
+
+  2. Setting Process Priorities: priority is based on a long term average ratio of CPU use to real time.
+  ("escape clause": after a block wait of greater than minimum time, a process is given a short quantum at maximum priority.)
+
+  3. Resource Guarantees and Limitations
+
+  Debugging Aids: DDT
