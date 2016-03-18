@@ -40,21 +40,21 @@ Lijun:
 * 02_16_02_cell_p173-andrus
 * 02_18_01_scheduler_p95-anderson
 * 02_18_02_lottery_waldspurger
+---
+Yunli
+
 * 02_23_01_Remote_Procedure_call
 * 02_23_02_osdi14-paper-belay
 * 02_25_01_p181-mckusick
 * 02_25_02_p1-rosenblum
-
----
-Yunli
 * 03_01_01_softupdates
 * 03_01_02_rio_p74-chen
+
+//optional
 * 03_03_01_gfs_p29-ghemawat
 * 03_03_02_fb_BLOB
 * 03_08_01_many_cores_Boyd-Wickizer
 * 03_08_02_multikernel_baumann-sosp09
-
-//optional
 * 03_10_01_potemkin-sosp05
 * 03_10_02_tdf-nsdi06
 * 03_10_03_diecast-nsdi08
