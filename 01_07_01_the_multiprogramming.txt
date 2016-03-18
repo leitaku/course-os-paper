@@ -44,9 +44,9 @@ System Software:
 	User programs written in ALGOL 60
 ========================================================================
 Processor Allocation:
-	In a single sequential process, correctness of program is dependent on sequence of 		event execution
+	In a single sequential process, correctness of program is dependent on sequence of event execution
 		Speed of execution doesn’t affect correctness
-		In THE, whole system is designed as a harmonious society of cooperating 			sequential processes progressing at undefined speeds
+		In THE, whole system is designed as a harmonious society of cooperating sequential processes progressing at undefined speeds
 	What constitutes a process in ‘THE’?
 		Each user program
 		Each input peripheral & Each output peripheral
@@ -54,7 +54,7 @@ Processor Allocation:
 	Virtualization of CPU is achieved
 		Processes cooperate with each other through mutual synchronization
 			Semaphores
-		Number of cooperating processes is independent of number of actual physical 			processors in the system
+		Number of cooperating processes is independent of number of actual physical processors in the system
 ========================================================================
 Storage Allocation:
 	‘THE’ implements automatic control of secondary storage
@@ -67,7 +67,7 @@ Storage Allocation:
 	Segment identifier contains a segment variable in core
 		Segment variable provides the page number where the segment can be found
 	Consequences:
-		When core page is dumped to drum, the page need not be returned to the same 			drum page from which it came
+		When core page is dumped to drum, the page need not be returned to the same drum page from which it came
 			Free drum page with least latency time is selected
 		Program pages need not be stored in consecutive drum pages
 	Total abstraction of memory locations from programs
@@ -136,7 +136,7 @@ LEVEL 5
 ========================================================================
 Synchronization:
 	Processes are synchronized via “Semaphores”
-		Semaphore initialized as special integer variables before they can be used by 			processes
+		Semaphore initialized as special integer variables before they can be used by processes
 		2 Operations on semaphores: P (wait) and V (signal)
 	It was observed that semaphore was used in 2 ways:
 		Mutual exclusion (Semaphore initialized with value 1)
@@ -156,7 +156,7 @@ Harmonious co-operation:
 		Process performing task can only generate finite tasks for other processes
 			In ‘THE’, higher layer can only generate task for lower layers
 		All processes cant be in “homing position” if there is a pending task in system
-		After acceptance of initial task, all processes eventually return to homing 				position.
+		After acceptance of initial task, all processes eventually return to homing position.
 			“Circular waits” has to be prevented from occurring ;
 			Else “Deadly Embrace” can result
 
@@ -165,7 +165,7 @@ Software Testing:
 	Validation of system was done in layers
 	Starting at Level 0 , each layer was thoroughly tested
 		Next layer is added after previous layer’s been validated completely
-		Test structure forces the system into all different relevant states and verified if the 		system performs according to specification
+		Test structure forces the system into all different relevant states and verified if the system performs according to specification
 	Hardware failures couldn’t restrict system validation due to hierarchical design of system
 ========================================================================
 Summary:
