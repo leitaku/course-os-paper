@@ -9,15 +9,16 @@ Meng:
 * 01_12_01_tenex
 * 01_12_02_hydra
 * 01_14_01_protection
-* 01_14_02_multics
 
 ---
+
+* 01_14_02_multics
 * 01_19_01_unix_timeshare
 * 01_19_02_plan_9_bell_labs
+* 01_26_01_pilot
 
 ---
 Mengqi
-* 01_26_01_pilot
 * 01_26_02_rethinkingsoftwarestack
 * 01_28_01_monitors_p549-hoare
 * 01_28_02_mesa_p105-lampson
