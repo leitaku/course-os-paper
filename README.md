@@ -32,7 +32,7 @@ Lijun:
 * 02_09_01_Web_Search
 * 02_09_02_p201-feeley
 * 02_11_01_micro_kernel_p66-hartig
-* 02_11_02_exokernel_p251-engler
+* 02_11_02_exokernel_p251-engleri (Yixing)
 
 ---
 
