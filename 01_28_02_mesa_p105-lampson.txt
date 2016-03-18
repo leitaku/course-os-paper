@@ -1,0 +1,96 @@
+Motivation for adding concurrency to Mesa:
+The creation of Pilot which was the first operating system developed for personal computers that would allow for multiple processes to run concurrently where each shared a time slice of CPU.  Created using concurrent programming as opposed to event based programming.
+Add concurrent programming to Mesa so that side by side development of Pilot could take place.
+
+Choices for handling concurrency in a language:
+1.Voluntary yields was an option that was rejected
+1)Only good for single processor
+2)Must respond to time critical events so preemption needed anyways
+3)Restricts programming generality, you need to know if a procedure you call will yield the processor
+4)Page faults would cause involuntary yields at arbitrary points in a program
+2.Message passing was an option that was rejected because it was proven to be equivalent to monitors when some mild restrictions are applied
+3.Monitors was the final choice because it was equivalent to message passing and worked better with the procedural scheme of Mesa, they choose Hoare’s paper as a starting place for thinking about concurrency in their language.
+
+Mesa Language Constructs:
+1.Light weight processes
+2.Monitors
+3.Condition variables
+
+Light weight processes:
+Pros:
+1.Easy forking and synchronization
+2.Shared address space
+3.Fast performance for creation, switching, and synchronization
+    Low storage overheads
+Cons:
+1.Mesa is a single user system
+2.Dangling references similar to those of pointers
+
+Creation of a process in Mesa:
+1.Any non-internal monitor procedure can create a new process by the use of a new key word called FORK that is placed in front of the procedure call
+2.This FORK procedure call will allow the current process to work concurrently with the new process created. It also returns a reference to the process just created so that the parent process can later joined an a result is returned or to detach from it. Different than Hoare thread that must suspend working until to the thread just created exits or yields.  
+	P ←FORK ReadLine[Terminal];
+	…<concurrent computation>
+	buffer ← JOIN p;
+3.Every thread can be joined at a later time unlike PThreads where you need to specify at time of creation. Extra overhead in Mesa thread even though in practice most Mesa programmers will immediately detach the thread.
+
+Monitors:
+1.Monitor lock for synchronization
+    1)Tied to module structure of the language; makes it clear what is being monitored.
+    2)Language automatically acquires and releases the lock.
+2.Tied to a particular invariant, which helps users think about the program.
+
+Modules and Monitors:
+1.Three types of procedures in a monitor module:
+  1)entry (acquires and releases lock)
+  2)internal (no locking done): can't be called from outside the module
+  3)external (no locking done): externally callable
+2.Allows grouping of related things into a module
+3.Allows doing some of the work outside the monitor lock
+4.Allows controlled release and reacquisition of monitor lock
+
+Notification in Mesa:
+Notifying process keeps the lock/control
+1.Notify 2.Timeout 3.Abort 4.Broadcast (P112)
+
+Deadlocks
+A.Typical deadlock scenarios:
+	1.Recursion on the same module
+	2.Enter multiple monitors in different orders
+	3.Enter multiple monitors in the same order, but wait inside the second monitor does not release the lock of the first monitor
+B.General problem with modular systems and synchronization
+    Synchronization requires global knowledge about locks, which violates the information hiding paradigm
+
+1.Lock granularity: introduced monitored records so that the same monitor code could handle multiple instances of something in parallel
+2.Interrupts: interrupt handler can’t block waiting
+    Introduced naked notifies: notifies done without holding the monitor lock.
+
+Priority Inversion
+“Information bus” is a shared memory region shared across the following processes:
+	1.Bus manager (high priority process)
+	2.Meteorological data gatherer (low priority)
+	3.Reset if Bus Manager hasn’t run for a while
+	4.Protected by a lock
+	5.If Bus Manager is scheduled by context-switching out the data gatherer, it will sleep for a bit, let the data gatherer run, which will release the lock in a short while
+Another thread: communications task
+  Medium priority, long running task
+  Sometimes the communications task would get scheduled instead of the data gatherer
+	Neither the lower priority data gatherer nor the higher priority bus manager would run
+
+Exceptions:
+  Must restore monitor invariant as you unwind the stack
+  The idea that you just kill a process and release the locks is naive
+  Entry procedures that have an exception, but no exception handler do not release the monitor lock
+    This ensures deadlock and a trip into the debugger, but at least it maintains the invariant
+
+
+
+
+
+
+
+
+
+
+
+

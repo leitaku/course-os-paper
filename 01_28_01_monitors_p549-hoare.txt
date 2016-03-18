@@ -1,0 +1,26 @@
+Monitor:
+A collection of data and procedures
+Mutual exclusion: 1) allows controlled acquisition and release of critical resources. 2) single anonymous lock automatically acquired and released at entry and exit
+Data encapsulation: monitor procedures are “entry points” for accessing data
+
+Rules for Monitors:
+1. Any process can call a monitor procedure at any time
+2. But only one process can be inside a monitor at any time (mutual exclusion)
+3. No process can directly access a monitor’s local variables (data encapsulation)
+4. A monitor may only access its local variables
+
+“wait” operation: current process is put to sleep
+“signal” operation: wakes up a sleeping process
+condition variables: 1) May have different reasons for “waiting” or “signaling”. 2) Processes waiting on a particular condition enter its queue
+
+Scheduled Waits:
+A waiting process is given a number. The process with the lowest number gets woken up first.
+
+Proof rules:
+I {b.wait} I&B
+I&B {b.signal} I
+I: the invariant
+B: the condition that a process waiting on b wants to be true before its woken up
+b: the condition variable
+
+

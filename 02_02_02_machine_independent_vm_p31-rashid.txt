@@ -1,0 +1,18 @@
+Mach: a portable, multiprocessor operating system
+goal of Mach: explore the relationship between hardware and software memory architectures; design a memory management system that would be readily portable to multiprocessor computing engines as well as traditional uniprocessors
+separation of software memory management from hardware support: few assumption about memory management hardware; primary requirement is handle and recover from page faults (arbitrary page size)
+
+1. A task: an execution environment in which threads may run; the basic unit of resource allocation. A task includes a paged virtual address space and protected access to system resources (such as processors, port capabilities and virtual memory). 
+2. A thread: the basic unit of CPU utilization. It is roughly equivalent to an independent program counter operating within a task. All threads within a task share access to all task resources. 
+3. A port: a communication channel -- logically a queue for messages protected by the kernel. Ports are the reference objects of the Mach design. Send and Receive are the fundamental primitive operations on ports. 
+4. A message: a typed collection of data objects used in communication between threads. Messages may be of any size and may contain pointers and typed capabilities for ports. 
+5. A memory object is collection of data provided and managed by a server which can be mapped into the address space of a task. 
+
+Operations on objects other than messages are performed by sending messages to ports.
+
+Copy-on-write sharing between unrelated tasks is typically the result of large message transfers. An entire address space may be sent in a single message with no actual data copy operations performed.
+Read/write shared memory can be created by allocating a memory region and setting its inheritance attribute (shared, copy or none per page). (e.g. child share memory of parent by inheritance value)
+Protection (read, write and execute permissions) per-page basis. 
+For group of pages, maximum protection (can be lowered) >= current protection
+
+Virtual memory related functions, such as pagan and page out can be performed directly by user-state tasks for memory objects they create.

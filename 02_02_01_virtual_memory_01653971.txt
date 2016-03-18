@@ -1,0 +1,84 @@
+The VAX-11 and its VAX/VMS operating system were designed to provide extended address space and enhanced performance for Digital’s PDP-11 customers. VAX/VMS intends to support all VAX-based applications and operate on a family of processors (diff performance and physical memory capacities), the memory management system had to be capable of adjusting to the changing demands characteristic of timesharing while allowing the predictable performance required by real-time and batch processes.
+
+Hardware
+basic entity in VAX-11 system: process
+each has a byte-addressable, 32-bit virtual address space (divided into 512-byte pages)
+(21-bit virtual page number + 9-bit byte offset within the page)
+
+Three region: system, P0, P1
+2-bit for dividing the process address space into a number of functional regions or spaces 
+bit 31 = 1: system space and is shared by all processes in the system
+(only half of the system space is currently used by the architecture)
+bit 31 = 0: process space and is unique to each process (two segments)
+	bit 30 = 0: P0 (program region) grows toward higher addresses
+	bit 30 = 1: P1 (control region) grows toward lower addresses
+each region is defined by a page table.
+
+basic unit of mapping and protection: page
+page table: contiguous array of 32-bit entries, 
+	       defined by a base address register and a length register 
+translation buffer: cash virtual to physical translations 
+	       divided into two sections: system translation, per-process translation
+	       (only the process section be flushed when context switch)
+
+PTE: 
+a valid bit (bit 31): whether this entry contains mapping info
+a protection field (bit 30-27): what privilege is required to read or write the page
+a modify bit (bit 26): whether a write access has occurred to the page
+a field used by the OS (bit 25-21)
+the physical page frame # (bit 20-0): locate the page in physical memory
+
+system page table: is located by reference to the system page table base register which contains its physical address
+P0/P1 page tables for each process: located in the system-space section of the address space, base registers contain virtual addresses (changed by a process context switch)
+translation: (two accesses)
+1. access to the system page table to calculate the physical address of the process page table
+2. access to process page table to calculate the physical address of the specified element
+
+system region: 
+All executive code and data, including some process-specific data structures and process page tables
+Software vector region: pointer to executive service routines in system space
+Memory management system: hardware access mode mechanism (executive code and data are not accessible to programs executing in the least privileged (user) mode)
+Collection of procedures that exist in the address space of each process (can be called explicitly)
+
+program region: 
+user’s executable program (can dynamically grow into higher-addressed sections)
+the first page (0-511) is marked as no access so that any reference will cause an exception
+(catching program errors involving uninitialized pointers)
+
+control region:
+store process-specific data, program image for the command interpreter (not to disturb user program images)
+user’s stack in the low-address part, grows toward lower addresses
+fixed-sized executive per-process stacks
+
+——————————————————————————————————————————————
+
+Memory management system: 
+the pager: an operating system procedure that executes as the result of a page fault; executes within the context of the faulting process, responsible for loading and removing process pages into and out of memory
+the swapper: a process responsible for loading and removing entire processes into and out of memory
+
+pager: resident-set list for each process
+1. a process-local page replacement policy used to limit the effect of a heavily faulting process on other processes in the system. The page to be removed from memory is selected from the process requesting a new page. (FIFO within the resident-set list)
+process’s resident set: the set of pages currently in memory for a process
+resident-set limit is the max size of the resident set: amount of physical memory a process may occupy
+2. trade-offs were made in favor of reducing processor usage at the possible cost of increased memory requirements. The amount of computation required  of the pager is limited; a quick decision is made and a software caching mechanism is used to reduce the penalty for removing a page that is still in use. (no overhead is required to maintain well = behaved programs executing in sufficient physical memory)
+3. modify bit for page removed = 0: add to the tail of the free page list; =1: add to the tail of the modified page list, wait for written to the paging file
+If a page faults is on either list, returned to the process’s resident set.
+The faulting of a page from the free list causes the page to be placed back at the top of the FIFO resident-set list.
+4. attempts to reduce the # of physical disk operations by reading and writing several pages at a time (clustering) (largest gain: initial program execution)
+executable program > segment > pages
+A user can specify a default cluster size for each segment when a program is linked. Normally a systemwide default is used.
+
+delay modified-page write requests through the modified page list mechanism:
+1. the modified page list can be a cache of recently removed pages. when a page is referenced, it can be returned to the process at min cost.
+2. when a write request must be performed, many pages can be written at once.
+3. pages can be arranged on the paging file so that clustering on read requests is possible
+4. it reduces the page writes since either the pages are faulted again or the program terminates
+
+a demand-zero page: created for a program and initialized to zero on demand. invalid bit set. when the page is faulted, the pager allocates a physical memory page, fills it with zeros, and adds the page to the resident set of the process. modified bit set in PTE.
+copy-on-reference pages: modify bit set for a writable page when it’s first loaded from the executable file. The paging file will be used as backup storage for the page. For sharing, each process will receive its own copy of that page.
+
+When a process faults one of its page tables, the page table is added to the process’s private resident set. The page table will not be eligible for removal from the resident set as long as it contains any valid PTE.
+
+swapper: a process swaps entire resident sets between memory and backing store;
+        also responsible for writing the modified page list
+objectives: to keep the highest priority processes resident; to avoid the typically high paging rates generated by resuming a process
