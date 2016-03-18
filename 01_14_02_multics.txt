@@ -1,0 +1,53 @@
+# Multics
+
+## Important points: compare ACL with capability
+1. Capability method - Attach the d'th row of access matrix A to the domain d.
+   Domain is defined by capability list, C-list.
+   [Example]
+   Give a domain a write permission (capability) to a file (obj).
+2. Access Control List method - Attach the protection information to the object
+   rather than the domain. Easier to revoke access. Likely to be more expensive.
+   [Example]
+   Multics needs to check ACL to map a segments from disk to a process's address
+   space.
+3. A hybrid version, an object can be accessed by access key to obtain a
+   capability, which is then used for subsequent accesses.
+   [Example]
+   Check ACL in disk to gain file access (ACL)
+   Then use file descriptor in memory (Capability)
+
+## Main points
+
+### Access Control List (storage system)
+Each process is associated with a principal identifier. Whenever the process attempts to access a segment, the principal identifier of the process is compared with those appearing in the access control list of the object.
+
+ADV: easier used by users
+DIS: overhead in checking, walk through the list
+
+### Hierarchical Access Specifications
+Hierarchical file structure implies hierarchical access rights
+
+### User Login
+
+### Memory Protection
+In Multics, the function of descriptor includes modes of access (read, write, and execute) and to provide for protected subsystems with share object names with their users.
+
+The virtual address space of a Multics process is implemented with an array of descriptors, called a descriptor segment.
+
+Protection information is associated with the addressing descriptor rather than with the data itself. Thus, a single physical segment may appear in different address spaces with different access privileges for different users, even though they are referring to the same physical data.
+
+The protection information found in a segment's descriptor is derived from the access control list for the segment. Any change to an access list is immediately propagated to all descriptors which have been derived from it.
+
++---------+----------+-------+---------+-----------------+
+|SEGMENT  | ADDR     | RWX   | CALL    | PROTECTED SUBSYS|
++---------+----------+-------+---------+-----------------+
+          (0)           (1)      (2)             (3)
+
+### Protected subsystem
+Any user can construct a protected subsystem, which is a collection of programs and data with the property that data may be accessed only by programs in the subsystem, and the programs maybe entered only at designated entry points, known in Multics as gates.
+(2) and (3) of the addressing descriptor together allow hardware enforcement of protected subsystems.
+(2) is the control of permission to enter a protected subsystem which has entry points in the segment based on this descriptor.
+(3) is the controls on which protected subsystems may use this descriptor.
+Protected subsystems are formed in 0-7, and the hardware permits a subsystem to use all of those descriptors containing protected subsystem numbers greater than or equal to its own.
+In UNIX, User -> Kernel, System call is the transfer control
+In Multics, 8 levels of privileges, generalize the system call to gate, which is the only way to transfer a control.

@@ -1,0 +1,72 @@
+The Performance of Microkernel-Based Systems
+
+1 Intro
+ Goal: Show that micro-kernel based system are usable in practice with good performance
+ Experiments: -Implement L4-Linux, and compare it with Mk-Linux and native Linux
+ -Implement mapping related OS extension in user-level of L4-Linux
+ -Implement L4 on an Alpha 21164 machine to check whether the L4 abstractions are reasonably independent of Pentium platform.
+
+3 L4 Essentials
+ Two basic concepts:
+ -Threads
+  --Activities executing inside an address space.
+  --Associated with its own pagers.
+ -Address spaces
+  --Recursive construction of address spaces.
+  --Granting, mapping, and un-mapping
+  --All address spaces are constructed and maintained by user-level servers, called pagers.
+  --Page faults are propagated via IPC to the pager associated with the faulting thread. The memory management policies can be implemented in user-level.
+ -I/O ports
+  --treated as parts of address spaces so that that can be mapped and un-mapped in the same manner as memory pages.
+ -Hardware interrupts
+  --handled as IPC. 
+  --Implement all device drivers as user-level servers.
+ -Exceptions and traps
+  --handled inside the raising threads.
+ -Pentium-specific feature
+  --Small-address-space optimization
+
+4 Linux on Top of L4
+4.1 Linux Essentials
+Two parts:
+ -Architecture-independent: 98% of the source codes
+ -Architecture-dependent: Encapsulates the underlying hardware architecture.
+Memory management
+ -uses a three-level architecture-independent page tables
+Interrupt handlers
+ -Top halves: Highest priority. Can interrupt each other.
+ -Bottom halves: Lower priority. Can be interrupted by the top halves, but cannot interrupt each other.
+4.2 L4Linux
+Restrict all modifications to the architecture-dependent part.
+Did not tune (optimize) Linux to L4
+Single-server approach: provide Linux services via a single Linux server.
+ The Linux Server
+  -Acts as a pager for the user process it creates.
+  -One thread to handle all activities induced by system calls and page faults.
+  -One thread per top-halve interrupt.
+  -One thread to handle too bottom-halve interrupt.
+ Linux User Process
+  -One task may have several L4 threads.
+  -Each task is associated with the Linux server as its pager.
+ System Calls
+  -System calls are handled by IPC
+ Signalling
+  -L4-Linux add additional signal-handler thread to each Linux user process.
+ Scheduling
+  -All L4 threads are scheduled by the L4 internal scheduler.
+
+6 Extensibility Performance
+Objective
+ -Show L4-kernel can perform better in some applications
+Pipes and RPC
+ -Implementation of synchronous L4 RPC is 5 times faster than Linux pipe with larger bandwidth.
+Virtual Memory Operations
+ -Memory management can be handled in user-level and become more intelligent.
+ -The resulting implementation is several times faster than the native Linux.
+Cache Partitioning
+ -Co-existence of time-sharing and real-time memory management.
+ -Use cache partitioning to reduce the worst-case execution time
+
+
+
+

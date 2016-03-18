@@ -1,0 +1,37 @@
+# Unix
+
+## Basics characteristics
+* Everything look like a file
+* I/O Devices
+* Streaming model
+
+## Mount
+* Single naming hierarchy
+
+## Links (hard links)
+* File exists independent
+* Directory links (maps)
+  Names -> I-nodes
+* If delete a file, decrease reference, if zero delete
+* Cannot reference other file systems
+
+## Permission (protected control transfer)
+* set UID
+* e.g. runs at the owner of the file
+* sudo: run as root
+
+## Shell redirect pipes
+* fd0: stdin, fd1: stdout
+* fork
+
+## Multics: memory mapped, Unix, streaming
+Multics uses hardware supported more sophisticated virtual address spaces:
+segments (which worked well with memory mapped files) and rings (generalization
+of the user-kernel mode into 8 protection levels)
+
+## What is different from today's Unix?
+* Groups
+* Filesystem
+* Name of the file, file size
+* Network
+* GUI
