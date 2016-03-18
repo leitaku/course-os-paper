@@ -40,9 +40,9 @@ Lijun:
 * 02_16_02_cell_p173-andrus
 * 02_18_01_scheduler_p95-anderson
 * 02_18_02_lottery_waldspurger
----
-Yunli
 
+---
+Yunli:
 * 02_23_01_Remote_Procedure_call
 * 02_23_02_osdi14-paper-belay
 * 02_25_01_p181-mckusick
