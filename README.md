@@ -35,7 +35,7 @@ Lijun:
 * 02_11_02_exokernel_p251-engleri (Yixing)
 
 ---
-
+Jinhui
 * 02_16_01_xen_p164-barham
 * 02_16_02_cell_p173-andrus
 * 02_18_01_scheduler_p95-anderson
