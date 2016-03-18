@@ -1,0 +1,95 @@
+Motivation:
+Create dependability with protection and isolation
+Move error detection closer to design time
+Goal: The primary Singularity goal is reliability and robustness (in their terms, “dependability and trustworthiness”)
+
+Protection and Isolation:
+Faults in application/driver assemblies shouldn’t affect overall system stability or stability of other programs
+Inherently more difficult to create malicious applications
+Eschews HW memory protections in favor of SW approaches
+
+
+Programming language mechanisms:
+The vast majority of Singularity’s kernel is written in Sing#, a memory-safe programming language derived from C#. But Singularity’s language integration goes beyond memory safety. The Sing# programming language was extended in several directions to make certain programming errors simply impossible. The biggest example is inter-process communication, or contract-based channels. IPC is defined by state-machine-like contracts whose specifications are verified by the compiler. This ensures that every process has explicit code to handle every possible message 
+Singularity also addresses robustness by seriously limiting what processes can do. Singularity processes are sealed. They cannot load libraries dynamically, modify their own code, or share memory with other processes. Some serious limitations: just-in-time compilation is impossible in sealed processes, for example. The implicit argument is that dynamically linked libraries, self-modifying code, and shared memory are inherently dangerous and should be eliminated. But another argument is that code without these features is much easier to statically analyze. It’s not clear which of these arguments led to the development of sealed processes.
+Finally, Singularity’s manifest-based programs bring type checking to process creation. A manifest defines a bunch of checkable program properties that the Singularity kernel can verify before starting a process. For example, the manifest says what ABI versions a program needs, what IPC interfaces are required, what other processes must be started, and so forth. The kernel can check “type and memory safety, absence of privileged-mode instructions, conformance to channel contracts,” and other, more specific properties, such as “that [a device] driver will not access hardware used by a previously installed device driver.”
+
+Evaluating Software Isolated Processes (SIPs)
+Singularity processes are generally isolated only by software. They are called Software Isolated Processes, in fact. Most processes run in the same address space as the kernel. Software verification and language safety ensures that SIP code can’t abuse the kernel privilege under which it runs.
+Hardware isolation ain’t free. Kernel crossings, which require special instructions, are much more expensive than simple function calls. Hardware virtual memory, which is irrelevant if you trust your memory-safe language, introduces a TLB and associated costs. So Singularity systems recover some performance lost to sealing and garbage collection by collocating processes with kernel code in a single privileged address space, and then optimizing accordingly. 
+
+SIP memory management: Page-disjoint heaps
+Sing# is a garbage collected language, and Singularity is a garbage collected operating system. Additionally, in the default mode, all processes cohabit the same address space. So you might expect all processes to share a single garbage collector. They don’t, and this is one of the more unusual and interesting design decisions in the Singularity system.
+Each Singularity process has its own page-disjoint heap. That is, no process can ever access objects in another process’s heap, and the heaps are disjoint at the level of pages, not objects. All of process A’s objects live on process A’s pages, which are disjoint from any other process’s pages. 
+Reason:
+Disjoint heaps mean no shared memory.
+    Shared memory would complicate verification.
+Page-disjoint heaps simplify accounting.
+    A process’s memory size equals its page count.
+Page-disjoint heaps simplify recovery after process exit.
+    No need to garbage collect its objects one at a time, just reclaim all its pages.
+Page-disjoint heaps simplify experiments with address space designs (Figure 5).
+Disjoint heaps allow each process to run its own garbage collector.
+    “The large number of existing garbage collection algorithms and experience strongly suggest that no one garbage collector is appropriate for all system or application code.” [p6, 1]
+    If no two processes can share objects, then each process can collect its own objects without agreeing on object layout with other processes.
+    In a system with a single unified GC, it would occasionally be necessary to completely stop the system for GC. (Even concurrent GCs usually have stop-the-world phaselets.) Independent GCs avoid this: GCs can run independently.
+        Wrinkle: In the single-address-space variant, Singularity system calls are implemented as procedure calls, and the kernel stack shares space with application stacks. So how can the kernel and application GC tell one another’s objects apart?
+        Solution: Special, explicit structures mark the stack boundaries between kernel and application threads. The GCs understand these structures.
+    Note that SIPs can choose their own GCs, but not necessarily write their own GCs. In the single-address-space variant, SIP GCs must be trusted by the kernel, so untrusted code can’t run in the GC. Most likely Singularity provides several pre-approved GC implementations; each SIP chooses one of these GCs and supplies it with optional parameters.
+
+SIP memory management: Exchange heap:
+Since normal heap data can’t be shared, a separate, explicitly-managed memory area called the exchange heap is used for message passing. Exchange heap objects must have an exchangeable type.
+Exchangeable objects are thus relatively simple—think flat objects, or objects with pointers to simpler objects, such as a “packet” type that points to an array of bytes.
+The kernel is ultimately responsible for managing the exchange heap’s memory; for example, it garbage collects the exchange heap to eliminate objects held by exited SIPs. But recall that for robustness, Singularity also prevents processes from simultaneously accessing objects in shared memory. Regular heaps are pagewise disjoint, but the exchange heap is explicitly designed for inter-process communication.
+Singularity prevent shared memory access in the exchange heap by a fancy type system. Sing# was extended to support a linear type discipline for exchange heap objects. Linear types ensure that each process can have at most one pointer to an exchange heap object at a time. When a process sends a message, the type of the send “system call” forces the sending process to lose that sole pointer to the message. As a result, and because of memory safety, the process also loses the ability to modify the message, and each exchange heap object is accessible to at most one process at a time. The linear type discipline also facilitates explicit allocation and deallocation operations for exchange heap objects, new and delete, which quickly recycle unneeded exchange heap memory.
+
+Linear types are cool and useful to enforce the no-shared-memory invariant. Reasons for implementing the exchange heap: performance. The exchange heap allows one Singularity process to send a message to another without copying; in the simplest case a single pointer to an exchange heap object will be transmitted. This can look great on microbenchmarks [4]. But (1)If the sending process wants to preserve a copy of the message it must make a copy explicitly. (2)The sending process must always construct the message on the exchange heap or copy it to the exchange heap from elsewhere. There is no way to reuse a message buffer, since the message buffer is explicitly lost on send. (3)As discussed by the exokernel and L3, microbenchmark performance does not always correlate with application performance.
+
+
+Verification
+
+SIP safety depends on some trusted code and some untrusted code. The trusted code includes the verifier itself, parts of the kernel, and any unsafe code that runs on behalf of the SIP, including the SIP’s garbage collector and memory allocator. The SIP’s process code is untrusted, and therefore Singularity must actively verify that it obeys Singularity’s invariants. Safety requires these checks:
+1.Heap memory safety.
+    All local pointers point into the SIP’s heap.
+    Pointers cannot be fabricated from integers: new pointers only arrive from the SIP’s trusted memory allocator.
+    Pointers are strongly typed (i.e., can’t access memory using the wrong type, which could break memory safety later).
+    Enforced using known techniques (e.g., the Java bytecode verifier).
+2.Exchange heap memory safety.
+    Exchange heap pointers obey the linear type discipline (to prevent modification of shared memory).
+    No double access, etc.
+    Exchange heap pointers are strongly typed.
+3.Channel contract agreement.
+    Much of channel contracts are not strictly required for safety. But channel contracts affect memory safety because Singularity infers a message’s type from its name and state, as specified in a channel contract. So if Singularity didn’t verify that both ends of a channel agree on the channel contract, and that sent and received messages’ types agreed with the contract, then message passing might break exchange heap type safety, and therefore memory safety.
+4.Kernel ABI agreement.
+5.Instruction safety.
+    SIPs must not use privileged machine instructions inappropriately.
+
+
+Singularity also verifies other properties that aren’t as safety sensitive.
+1.Channel contracts are checked for unhandled messages.
+    Not very safety sensitive since unhandled messages could easily be implemented as exceptions.
+2.Channel contracts are checked to verify that all cycles in contract states contain at least one receive and one send action.
+    Reason: If a state cycle existed involving only process A sending messages, then A could send infinitely many messages to B without waiting for a response. This might overflow any bounded queue, and Singularity wants to avoid overflow while bounding the queue size.
+      Why? Feels a bit random: Singularity wants message receive to involve no allocation, so that a receiver can always reliably receive a message; this requires bounded receive queues. Why not involve allocation?—perhaps a performance concern?
+      “Although the rule [about state cycles] seems restrictive, we have not yet seen a need to relax this rule in practice.” I.e., it’s not a safety concern.
+    What about a cycle like “A receives → A sends M1 → A sends M2 → B receives M1 → B sends M3 → cycle”? Won’t B’s queue grow infinitely long?
+      No, because contracts don’t work this way. In contracts receive events are implicit—an endpoint must receive all previous messages in a contract line before sending a message itself. The contract above would really be written as something like “state X { M1? → M2? → M3! → X; }”, which shows that B (the exporting end) must receive both M1 and M2 before sending M3.
+
+Verification happens like this. A Sing# compiler, Bartok, compiles source code to an intermediate bytecode language, MSIL. At SIP install time (as a SIP is started), the verifier checks the bytecodes; simultaneously, a bytecode compiler generates machine code from the bytecodes (possibly interleaving that machine code with trusted machine code, such as the GC). At runtime, machine code is active.
+  Why not verify at compile time?
+    If the verification happened only at compile time, then the compiler would have to be trusted.
+  Why not compile to machine code?
+    Machine code, being lower level, is harder to verify.
+    MSIL bytecode is machine-agnostic, which arguably simplifies deployment in heterogenous environments (“Singularity packages manifest-based programs in the abstract MSIL format, which can be converted to any I/O processor’s instruction set.” [p10, 1])—but this is a stretch.
+    Nevertheless, the paper claims that in future, the compiler could generate type-safe assembly language (TAL), which is closer to machine code.
+  Why not JIT at run time?
+    The Singularity authors argue that JIT is inherently risky and unrobust.
+  Why not verify at run time?
+    Some verification does happen at run time (for example, consider the trusted Cell<T> wrapper for exchange heap pointers [4], and the bounds checks described as the “Safe Code Tax”), but in general, run-time verification is expensive. If verification can be done statically, the runtime cost is zero.
+    But we don’t know how fast the bytecode verifier is, and therefore how slow process startup is. There might be a tradeoff.
+The paper claims future work will push Singularity verification further, with the nice goal of requiring less trust. In addition to TAL, already a type system was developed that can be used to write type-safe garbage collectors.
+
+Contract-based channels
+Channels are like type-safe pipes. “A channel is a bi-directional [lossless, in-order] message conduit with exactly two endpoints.” [p3, 1] Each endpoint is sort of like a pipe file descriptor, except that pipes handle byte streams (channels handle complex, type-safe message protocols) and pipe file descriptors can be shared by multiple processes (each channel endpoint is owned by exactly one thread at a time).
+We’ve discussed channel contracts in the context of type safety, but the two Listings in Section 2.2 are worth considering. Note how new channels may be passed over old ones (see NicEvents.Exp:READY in the text and in Listing 1’s in message RegisterForEvents).
+
