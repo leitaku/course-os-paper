@@ -11,14 +11,14 @@ Meng:
 * 01_14_01_protection
 
 ---
-
+Yixing:
 * 01_14_02_multics
 * 01_19_01_unix_timeshare
 * 01_19_02_plan_9_bell_labs
 * 01_26_01_pilot
 
 ---
-Mengqi
+Mengqi:
 * 01_26_02_rethinkingsoftwarestack
 * 01_28_01_monitors_p549-hoare
 * 01_28_02_mesa_p105-lampson
@@ -33,7 +33,7 @@ Lijun:
 * 02_09_02_p201-feeley
 * 02_11_01_micro_kernel_p66-hartig
 * 02_11_02_exokernel_p251-engler
- 
+
 ---
 
 * 02_16_01_xen_p164-barham
