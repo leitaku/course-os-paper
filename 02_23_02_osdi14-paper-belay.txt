@@ -1,0 +1,57 @@
+
+#1: Protection and direct  HW  access through virtualization
+#2: Execution model for low latency and high throughput
+
+Analogy with VM model
+
+| VM    | Protection domain      | IX    |
+| :----:|:----------------------:| -----:|:--------------:|
+| Apps  | Ring 3                 | Apps  |IX Control plane|
+| OS    | Guest(non-ROOT) Ring 0 | IX    |                |
+| ------| ------                 | ----- |                |
+| VMM   | Host(ROOT) 0           | NIC   |Kernel (Dune)   |
+
+
+Important assumption:
+
+"Small Requests": Most requests can be processed by the CPU and within memory, taking short time
+
+Key features:
+* Separation of Control and Data Plane
+* The IX Execution Pipeline
+* Design (1): Run-to-completion
+  Improves data-cache locality
+  Remove scheduling unpredictability
+* Design (2): Adaptive Batching
+  Improve instruction-cache locality and prefetching
+
+Other features:
+* Design (3): Flow consistent hashing
+  Synchronization & coherence free operation
+* Design (4): Native zero-copy API
+  Flow control exposed to application
+* Libix: Libevent-like event-based programming
+* IX prototype implementation
+  Dune, DPDK, LWIP, ~40K SLOC of kernel code
+
+From previous homework:
+
+IX has been optimized for a workload where application processing per request is relatively small, and where application processing can be done in a run-to-completion model. As a result, the thread handling a packet can execute through the networking stack (data plane), call up into the application, and then call back down into the networking stack. By optimizing the networking layer, it greatly reduces overhead and overall execution time for processing a packet in the server.
+
+IX Conclusion
+* A protected dataplane OS for datacenter applications with an event-driven model and demanding connection scalability requirements
+* Efficient access to HW, without sacrificing security, through virtualization
+* High throughput and low latency enabled by a dataplane execution model
+
+--- Problem: 1980s Sobware Architecture ---
+* Berkeley sockets, designed for CPU time sharing
+* Today’s large-scale datacenter workloads:
+
+Hardware: Dense Multicore + 10 GbE (soon 40)
+- API scalability critical!
+- Gap between compute and RAM -> Cache behavior matters
+- Packet inter-arrival times of 50 ns
+Scale out access patterns
+- Fan-in -> Large connection counts, high request rates
+- Fan-out -> Tail latency matters!
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
