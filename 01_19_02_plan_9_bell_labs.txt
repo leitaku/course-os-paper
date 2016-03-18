@@ -1,0 +1,43 @@
+# Plan9
+
+## Specialize model
+* Originally: all user logged in a time shared system, now each user has a unix
+* Therefore, there is admin burden
+* Now: rejects run unix on everything
+* New model: Specialize
+      Different nodes have different functions.
+      * Terminals
+      * CPU Server
+      * File Server
+
+## Unified
+* Everything like a file (same as Unix, even more in some place, like control device is a file in Plan9)
+* Everything becomes a file server
+* 9P protocol connects all clients and servers
+
+## Local Name Space
+* Different from Unix's global name space.
+* Customize the name space, no uniform one. Every process sees a different one.
+* Name convention /dev/con -> console windown. Change what /dev/con is mapped to, to have a local or remote console.
+* Associated with process (each process has own namespace)
+
+## WORM
+* Three levels of storage.
+* The disk is a cache for the WORM and the memory is a cache for the disk.
+* Every day, a dump of the file system occurs automatically, written to the WORM.
+
+## RFORK
+* rfork falls somewhere between processes and kernel threads. rfork create a new process, and specify what should be shared. BSD has rfork, and Unix has clone, which is similar.
+
+## Union Directory
+* We can have concatenation of directories.
+* No $PATH needed.
+* /bin is a union dir of every dir we can find runnable programs. It is built as a union of$cputype/bin, /rc/bin and perhaps more defined by the user.
+* The lookup in a union directory obeys the rule that search in turn, the first one match will be taken.
+
+## Influences
+* Unicode, UTF8
+* file caches
+* /proc is later used in Linux.
+* rfork exists in BSD, clone() in Linux.
+* NFS block access, plan9 byte access
