@@ -16,6 +16,9 @@ All pdfs and notes in this repository are publicly available online.
 * 01_28_02_mesa_p105-lampson
 * 02_02_01_virtual_memory_01653971
 * 02_02_02_machine_independent_vm_p31-rashid
+
+---
+Lijun:
 * 02_04_01_v_kernel_p129-cheriton
 * 02_04_02_sprite-ieee-computer88
 * 02_09_01_Web_Search
@@ -30,6 +33,9 @@ All pdfs and notes in this repository are publicly available online.
 * 02_23_02_osdi14-paper-belay
 * 02_25_01_p181-mckusick
 * 02_25_02_p1-rosenblum
+
+---
+Yunli
 * 03_01_01_softupdates
 * 03_01_02_rio_p74-chen
 * 03_03_01_gfs_p29-ghemawat
