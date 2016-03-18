@@ -1,0 +1,50 @@
+The Nucleus of a Multiprogramming System
+
+Introduction:
+  The main problem in the design of a multiprogramming system is to supply a system nucleus that can be extended with new operating systems in an orderly manner. 
+  The purpose of the system nucleus is to implement these fundamental concepts: simulation of processes; communication among processes; creation, control, and removal of proesses.
+
+Processes:
+  internal process: the execution of one or more interruptable programs in a given storage area. An internal process is identified by a unique process name.
+  program: a collection of instructions describing a computational process, whereas an internal process is the execution of these instructions in a given storage area.
+  peripheral device: an item of hardware connected to the data channel and identified by a device number.
+  document: a collection of data stored on a physical medium.
+  external process: the input/output of a given document identified by a unique process name.
+
+  multiprogramming and communication between internal and external processes are coordinated by the system nucleus -- an interrupt response program with complete control of input/output, storage protection, and the interrupt system. 
+
+Process Communication:
+  the semaphore concept alone does not fultill our requirements of safety and efficiency in a dynamic environment in which some processes may turn out to be black sheep and break the rules of the game. Instead, message buffering within the system nucleus as the basic means of process communication. The system nucleus administers a common pool of message buffers and a message queue for each process.
+
+  Advantages:
+    The multiprogramming system is dynamic in the sense that processes can appeaar and disappear at any time. Therefore a process does not in general have a complete knowledge of the existence of other processes. 
+    Once a communication has been established between two processes, they need a common identification of it in order to agree on when it is terminated. It enables two processes to exchange more than one message at a time (regard the selection of a buffer as the creation of an identification of a conversation).
+    Prepared for the occurrence of erroneous or malicious processes in the system. The system nucleus ensures that no process can interfere with a conversation between two other processes by storing the identity of the sender and receiver in each buffer and checking it whenever a process attepts to send or wait for an answer in a given buffer. 
+    Efficiency is obtained by the queueing of buffers.
+
+  Drawback of message buffering:
+    resource problem, since the common pool contains a finite number of buffers. 
+
+External Processes:
+  For each kind of external process, the system nucleus contains a piece of code that interprets a message from an internal process and initiates input/output using a storage area specified in the message. When input/output is terminated by an interrupt, the nucleus generates an answer to the internal process with information about actual block size and possible error conditions.
+  External processes are created on request from internal processes.
+
+Internal Processes:
+  Internal processes are created on request from other internal processes. The storage area must be within the parent's own area.
+
+The difference between them is merely a matter of processing capability.
+
+Process Hierarchy:
+  parent processes have complete control over child processes.
+
+  The family tree of processes can be extended to any level, subject only to a limitation of the total number of processes.
+
+  Strategy:
+    each process has the power to control the scheduling and resource allocation of its children. 
+    Only rule: a process can only allocate a subset of its own resources (including storage and message buffers) to its children; a process can only start, stop, and remove its own children (including their descendants).
+    After removal of a process, its resources are returned to the parent process.
+
+Characteristics of the system:
+  1. New OS can be implemented as other programs without modification of the system nucleus. It is possible to write OS in high-level languages.
+  2. OS can be replaced dynamically.
+  3. Standard programs and user programs can be executed under different OS without modification. 
