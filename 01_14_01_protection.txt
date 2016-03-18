@@ -1,0 +1,24 @@
+Protection
+
+At that point in time, they had very ad hoc implementations of protection/security, so he made a general paper re protection
+Object - anything that you want to protect. Resources, segments, files, etc
+    Name must be unforgeable (OS has to control them)
+Domain - the context in which an object has rights to other objects
+Access matrix - designate what permissions each domain has over each object
+Control vs owner - control deals with the domain's point of view, whereas owner deals with the object.
+Looking at individual rows of Access Control Matrix looks like capability, looking at columns is an ACL
+
+Message System:
+  consists of processes which share nothing and communicate with each other only by means of messages.
+
+  Message: consists of an identification of the sending process followed by an arbitrary amount of data.
+  Messages are received one at a time in the order in which they were sent.
+
+  two major flaws:
+    1. impossible to retain control over a runaway process
+    2. an elaborate system of conventions is required to get processes to cooperate
+
+Object System:
+  a set of objects, a set of domains, and an access matrix or access function
+
+  
