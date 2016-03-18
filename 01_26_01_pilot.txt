@@ -1,0 +1,41 @@
+# Pilot: An Operating System for a Personal Computer
+Q: How do the requirements of the Pilot operating system differ from the systems we have read about so far, and how does the design of Pilot reflect those differences?
+
+## Why different?
+* Single user
+* Defensive protection
+* Resources - not on fairness
+* Network
+
+## Feature of Mesa language
+* Object oriented (Pointer not exist)
+* Single address space (No H/W protection)
+* Strong type check
+
+## Hints
+* Memory mapped file, pages used, can be moved
+* OS trust the app hints
+* No incentive for lying
+
+## Virtual memory
+Virtual memory -> Space
+Space.Create
+* Space is servering as the unit of allocation.
+* Space can be created as nest.
+Space.Map
+* Virtual memory is the only access path to the contents of files, and files are the only backing store for virtual memory.
+Swapping
+* The swapping between primary memory and backing store is performed in the units of spaces.
+* The swapping stategy followed is to swap in the lowest (i.e., smallest) space containing the page.
+* Space.Activate as a hint to be swapped in asap. Space.Deactivate is the inverse operation.
+
+## Advantage of all files memory mapped
+* Decouple read / write and paging
+* Reuse virtual memory functionality
+* Stream I/O on top
+
+## Kernel / Manager
+Kernel -> Mechanism
+Manager -> Policy
+Kernel: Memory page out, page in.
+Manager: Decides which page to page out.
