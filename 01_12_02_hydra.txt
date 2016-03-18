@@ -7,7 +7,7 @@ What is HYDRA:
 	Protection mechanism is flexible enough to provide a wide range of security policies
 		Note that protection is a mechanism, security is a policy! Policy is what you want restricted, mechanism is how you are going to achieve that
 ========================================================================
-5 principles of HYDRA’s Protection Philosophy
+5 principles of HYDRA's Protection Philosophy
 	1. Information can be divided into distinct objects for the purpose of protection
 	2. Objects are distinguished by type
 		Built-in types: procedure, process, semaphore
@@ -16,7 +16,7 @@ What is HYDRA:
 	3. Access to objects is controlled by capabilities
 		Capability contains a large no. of access rights, can be transferred from one user to another, can be type specific/independent
 		The more rights you have, the more control you have
-			So object has no “owner” as such
+			So object has no "owner" as such
 	4. Each program should execute with the smallest set of access rights necessary
 	5. Representation and implementation of operations for each type of object should be hidden in a subsystem
 		Subsystem ~ type of object + associated procedures
@@ -87,35 +87,35 @@ Problem:
 	Caller needs a guarantee that callee is not granted access to any of its objects except those for which it passes capabilities as parameters
 	Callee needs a guarantee that the caller cannot gain access to its private data unless if it explicitly allows it
 Solution:
-	HYDRA’s Protection Principle 4 states: each program should execute with the smallest set of access rights necessary. This guarantees solution to Mutual Suspicion
+	HYDRA's Protection Principle 4 states: each program should execute with the smallest set of access rights necessary. This guarantees solution to Mutual Suspicion
 	Protection for Callee
-		A caller can only operate on objects whose capabilities are present in the C-list, no access to callee’s capabilities
-		So, callee should be protected if it keeps sensitive data in its “own” (i.e. private) capabilities.
+		A caller can only operate on objects whose capabilities are present in the C-list, no access to callee's capabilities
+		So, callee should be protected if it keeps sensitive data in its "own" (i.e. private) capabilities.
 	Protection for Caller
-		LNSes are stacked. A procedure can’t access capabilities in LNSes deeper in the process stack.
+		LNSes are stacked. A procedure can't access capabilities in LNSes deeper in the process stack.
 ========================================================================
 PP2: Modification
-	“User often wants to guarantee that an object passed as an argument to a procedure will not be modified as a result of the call.”
+	"User often wants to guarantee that an object passed as an argument to a procedure will not be modified as a result of the call."
 Solution: MDFYRTS
 		To store a capability in an object, one must have a capability for the object with both STORTS and MDFYRTS.
 		User passes a capability to callee procedure restricting MDFYRTS
 		HYDRA enforces that MDFYRTS can never be gained through amplification.
 ========================================================================
 PP3: Limiting Propagation of Capabilities
-	“A user wishes to allow another user to access an object but wants to guarantee that the other user can’t share access with a third user.”
+	"A user wishes to allow another user to access an object but wants to guarantee that the other user can't share access with a third user."
 Solution: ENVRTS
 	A capability may only be stored in an object if the capability contains ENVRTS
 	In this way a capability does not escape outside of the executing ENVironment (LNS)
 ========================================================================
 PP4: Conservation
-	“A user wishes to pass a capability for an object to a procedure. Though he expects the procedure to modify the object, he wants to guarantee that on one will continue to modify 	the object after the procedure returns.”
+	"A user wishes to pass a capability for an object to a procedure. Though he expects the procedure to modify the object, he wants to guarantee that on one will continue to modify 	the object after the procedure returns."
 Solution: ENVRTS
 	If the capability for an object is passed to a procedure with ENVRTS restricted, the LNS of the procedure cannot store this capability in any object that another user can access
 ========================================================================
 PP5: Confinement – Limiting propagation of information
 WHAT IF???
 		A procedure when called, creates a new object, gives it the capability allowing ENVRTS and MDFYRTS, copies data from old object to new object and shares 			the capability for the newly created object with other objects.
-	“A user needs a guarantee that no information may escape from the called procedure except to objects specified by caller.”
+	"A user needs a guarantee that no information may escape from the called procedure except to objects specified by caller."
 Solution: MDFYRTS
 	Restrict MDFYRTS to guarantee against leakage of information
 ========================================================================
@@ -127,4 +127,4 @@ Conclusions
 	Very flexible, fine-grained protection
 	Has solved protection problems like Mutual Suspicion, Modification, Limitation of Propagation
 	Looks performance-intensive though…
-	A bit complicated to create objects and define operations on them, don’t you think?
+	A bit complicated to create objects and define operations on them, don't you think?
