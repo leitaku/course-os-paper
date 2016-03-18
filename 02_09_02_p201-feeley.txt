@@ -1,0 +1,80 @@
+Implementing global memory management in a workstation cluster
+
+1 Abstract & Intro
+Our objective is to use a single, unified, but distributed memory management algorithm at the lowest level of the operating system. By managing memory globally at this level, all system- and higher-level software can benefit from available cluster memory. 
+Important parts of GMS is it page aging procedure, which provides information for global decision making. 
+
+2 Differs from previous: 
+ -integrated with the lowest level of the system and encompasses all memory activity
+ -manage memory globally, attempting to make good choices both for the faulting node and the cluster as a whole.
+ -gracefully handle addition and deletion of nodes in the cluster without user intervention.
+
+3.1 Algorithm:
+find in paper p202. 
+ -Global-memory size changes dynamically
+ -Local pages may be replicated on multiple nodes
+ -Each global page is unique
+ -Using swap when page faults. 4 cases. 
+ -Over time, nodes will fill their memories with local pages and will begin using remote memory in the cluster. 
+ -Local hit faster than global hit, so that replace global page first if they are same age.
+
+3.2 Managing Global Age Information
+Guarantee the validity of the age information and deciding when it must be updated.
+ -time is divided into epochs (5 or 10 seconds)
+ -each epoch, nodes send page-age information to a coordinator
+ -coord. assigns weights to nodes s.t. nodes with more old pages have higher weights
+ -on replacement, we pick the target node randomly with probability proportional to the weights 
+ -over the period, this approximates our (global LRU) algorithm
+
+3.3 Node Failures and Coherency
+Node failures in the cluster do not cause data loss in global memory.If a node housing a requested remote page is down, the requesting node simply fetches the data from disk.
+
+3.4 Disscus about this idea
+Minimize memory reference time by minimization of disk access. It means that they show a way to maximize memory utilization in tightly-coupled computers. Avoid impacting programs not using global memory.
+ -Choose those nodes most likely to have idle memory to house global pages.
+ -Avoid burdening nodes that are actively using their memory
+ -Ultimately maintain in cluster-wide primay memory the page most likely to be globally reused 
+ -Maintain those pages in the right places.
+
+4 Implementation
+Fig.3 in paper p204 shows implementation, two key points:
+ -the VM system, which support anonymous pages devoted to process stacks and heaps
+ -the Unified Buffer Cache, which caches file pages.
+
+4.1 Basic Data Structure
+ -Every page is identified by a cluster-wide UID
+  --UID is 128-bit ID of the file block backing a page
+  --IP node address, disk partition, inode number, page offset
+ -Page Frame Directory (PFD): per-node structure for every page (local or global) on that node
+ -Global Cache Directory (GCD): network-wide structure used to locate IP address for a node housing a page. Each node stores a portion of the GCD
+ -Page Ownership Directory (POD):  maps UID to the node storing the GCD entry for the page.
+ Detail implementation see below sections:
+4.2 Collecting Local Age Info 
+4.3 Inter-node Communication
+4.4 Addition and Deletion of Nodes
+4.5 Basic Operation of the Algorithm
+
+6 Limitations
+ - the failures of initiator or master nodes is difficult to handle.
+ - trust. security. easily in hardware level.
+ - LRU may bot the best choice
+ - only few nodes have idle memory, CPU load will high
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
