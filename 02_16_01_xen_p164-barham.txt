@@ -1,0 +1,109 @@
+Xen and the Art of the Virtualization
+========================================================================
+Challenges to build virtual machines:
+1. Performance isolation
+   Process Scheduling 
+   Memory Usage 
+   Network Traffic 
+  Disk Access 
+2. Support for various OS platforms
+3. Minimizing performance overhead
+========================================================================
+Virtualization Approch
+1. Conventional -> Full Virtualization
+  GuestOS runs without modification
+  GuestOS cannot access the hardware directly
+  Problematic for certain privileged instructions (eg. traps)
+  No real-time guarantees
+2. Xen -> Paravirtualization
+  Modifications to the GuestOS necessary, no modification are required to guest applications
+  GuestOS runs in parallel with other modified systems
+  Provides some exposures to the underlying HW
+
+Xen: A high performance resource-managed x86 virtual machine monitor 
+     Multiplexes resources at the granularity of an entire OS
+        Follows the ideology of Exokernel
+        As opposed to process-level multiplexing
+        higher overhead
+     
+     Target: hosting up to 100 virtual machine instances simultaneously on a modern server
+======================================================================== 
+1. Memory Management:
+  Depending on the hardware supports
+    Software managed TLB
+      Associate address space IDs with TLB tages
+      Allow coexistence of OSes
+      Avoid TLB flushing across OS boundaries
+  X86 does not have software managed TLB
+    guestOS initializes a page from its own memory reservation and registers it with Xen
+    Xen exists in a 64MB section at the top of every address space to Avoid TLB flush when an guest OS enter/exit Xen
+    Writes are validated by Xen
+    
+2. CPU
+  X86 supports 4 levels of privileges, generally described as rings, 0 is most privileged to 3 is least
+    0 for OS, and 3 for applications
+    Xen doengrades the privileges of OSes
+    System-call and page-fault handlers registered to Xen
+    "fast hangdlers" for most exceptions, Xen isn't involved (system call), page faults must be delivered via Xen
+    Safety is ensured by validating exception handlers when they are presented to Xen
+    Separation of policy and mechanism
+    Domain0 hosts the application-level management software:
+      Creation and deletion of virtual network interfaces and block devices
+    
+3. Control Transfer
+  Hypercall: synchronous calls from a domain to Xen
+    Analogous to system calls
+    Allows domains to perform a synchronous software trap into the hypervisor to perform privileged operation 
+  Events: asynchronous notifications from Xen to domains
+    Replace device interrupts
+    Lightweight notification of important system events, similar to Unix signal
+    Event handling can be deferred by domain
+    
+4. Data Transfer
+  Safe indirect way to share I/O devices among OSes 
+  Circular queue accessible by Xen and a domain
+
+5. CPU Scheduling and Timers
+  Borrowed virtual time scheduling 
+    Allows temporary violations of fair sharing to favor recently-woken domains 
+    Goal: reduce wake-up latency
+  Xen provides several different types of timers
+    Real Time (time that always advances regardless of the executing domain)
+    Virtual Time (time that only advances within the context of the domain)
+    Wall Clock Time (time that takes in to account local offsets for time zone and DST)
+
+6. Virtual Memory
+  No shadow pages (VMWare)
+  Xen provides constrained but direct MMU updates
+  All guest OSes have read-only accesses to page tables
+  Updates are batched into a single hypercall 
+  Updates must be validated by Xen 
+  Guest OSes are responsible for allocation and managing pages within their own domain 
+  Xen exists in a generally unused section at the top of every address space to prevent paging out
+  
+7. Physical Memory
+  Reserved at domain creation times
+  Memory statically partitioned among domains
+  Does not guarantee contiguous regions of memory
+  Supports hardware~physical mapping by providing shared translation array readable by all domains
+  
+8. Network
+  Virtual firewall-router attached to all domains
+  Round-robin packet scheduler
+  To send a packet, enqueue a buffer descriptor into the transmit rang
+  Use scatter-gather DMA (no packet copying)
+    A domain needs to exchange page frame to avoid copying
+    Page-aligned buffering
+    
+9. Disk
+  Only Domain0 has direct access to disks
+  Other domains need to use virtual block devices
+    Use the I/O ring
+    Reorder requests prior to enqueuing them on the ring
+    If permitted, Xen will also reorder requests to improve performance
+  Use DMA (zero copy)
+========================================================================
+Performance
+  Close and outperform others
+  Performance isolation works as expected
+  Memory usage enough for running 100 domains on a server
