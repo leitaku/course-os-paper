@@ -1,0 +1,126 @@
+Cells: A Virtual Mobile Smartphone Architecture
+========================================================================
+A virtualization architecture for enabling multiple virtual smartphones to run simultaneously on the same physical cellphone in anisolated, secure manner.
+
+Summary
+Novel Architecture for a Virtual Phone
+  How to do away with “overhead overhead”
+  New way to virtualize devices
+Foreground‐Background Usage Modle
+  How to contribute a low overhead
+========================================================================
+Motivation
+For “everyday computing,” Mobile > Desktop (+Laptop)
+  Many virtual phones that are isolated on a physical phone
+Existing (system) virtualizations
+  High overhead
+  Hardware devices
+Cells: new, LWT virtulization
+========================================================================
+Overview of Cells
+Virtual Phones
+  Multiple Multiple Android Android instead instead of multiple multiple OS instances instances
+Low overhead
+  UnionFS, KSM, Form factor ( ll Sma d l) isp ay)
+New usage model
+Device support
+Per‐VP Phone number
+Prototype using Real commercial Android phones
+  Nexus 1, Nexus S with Gingerbread Gingerbread
+Scalability
+========================================================================
+Usage Model
+  Only allow a single VP, the foreground VP, to be displayed at any time
+  Background VPs are running in the background but not displayed
+  Access Right
+    Three different access right for each device on a phone hardware
+    No access, shared access, or exclusive access
+    Assigned statically when a VP is configured
+========================================================================
+Architecture
+A virtual phone has
+  ID, Kernel I/F, and virtualized virtualized hardware hardware resources resources
+  Private virtual namespace
+  Filesystem Path
+  Virtualized {PIDs, network names, user names}
+    Eg. The same PIDs can exists if VP ids are different different
+    Linux provides the PID virtualization
+========================================================================
+Virtualization
+  Why virtualized resources?
+    Guarantee Isolation among VPs
+  How? 
+    1. Kernel‐level: device namespaces
+    2. User‐level: user-level device namespace mechanism
+========================================================================
+Scalability & Security
+Scalability
+  How many VPs can be built on a physical physical phone
+  Removing overhead per‐VM
+    UnionFS UnionFS (aufs), KSM, LMK
+Security
+  How Cells isolate a VP from others
+  Kernel/user‐level namespace namespace
+  Separate FS view for each VP
+  No creation creation of device nodes in a VP
+
+UnionFS (aufs) 
+  Stacking file systems
+  Join the read‐only fs with a writeable files
+  Read‐only: /data, /system 
+  Device Virtualization
+
+Graphics
+  Multiplexing FB device driver: mux_fb
+  How FB works : mmaps, standard standard IOCTLs, custom IOCTLs
+
+GPU
+  GPU is already isolated by underlying Linux
+    Pass‐through through access in each VP context context
+  Switching the foreground VP, remap memory buffers
+  Need to access a GPU driver at a somewhat level
+  Requirements for proprietary GPU driver
+    Remap the GPU driver’s linear addresses
+    Re‐initialize On/Off
+    Ignore power management request
+  For GPUs without without MMU, the backing backing memory is contiguous
+
+Telephony
+  Incoming/Outgoing calls
+    Multiple Multiple Numbers: Numbers: Phone number assigned assigned to each VP
+    Challenge: One SIM allows just one phone number, Caller ID
+
+Network
+  Best Practice in desktop/server virtualization
+    Virtual Virtual wired network network adapter adapter for each virtual virtual machine machine
+    Configuration in a host
+  Requirements
+    Each VP Should be able to independently select its wireless connection, and configure configure it
+      e.g., Security method, WLAN or 3G
+    Some application should be able to access WLAN directly
+      e.g., Location‐based services, AppStore, System Updater
+  Similar with telephony
+  Android Android uses wpa_suppli t can for wireless wireless setup
+========================================================================
+Experiment
+  Measuring overhead/power consumption for 5‐VP
+  VPs config ration uration for UI test
+    VP1: Angry Bird
+    VP2: Reckless Racing (3D game)
+    VP3: Office Suite Pro
+    VP4: Android Music Player
+========================================================================
+Conclusion
+  Problems in existing device virtualization
+    Pass‐though : other VMs cannot access
+    Bypass: requires special hardware support
+    In particular, GPU
+      Vmware MVP not good for games
+      Xen backend‐frontend: vendor support needed
+========================================================================
+Pros
+  Lightweight, No hypervisor hypervisor
+  Leveraging existing device drivers
+Cons
+  Large TCB
+  Different mobile OS on a phone (e.g., Android + iOS)
