@@ -1,0 +1,203 @@
+
+Soft Updates
+============
+
+What is the problem?  Metadata consistency
+
+Suppose you delete a file and subsequently crash
+  * If file system imposes write order with synchronous writes (FFS)
+    - Free map, count will probably be wrong
+    - Inode may have link count 1 but no directory entry
+    - New inode may point to block of deleted file
+        Chunks of a deleted file show up in new unrelated files
+    - fsck can fix 1 and 2 but not 3
+  * If file system imposed no ordering (Linux ext2fs)
+    - Same problems as FFS, plus:
+    - Inode may have been recycled before directory written
+        Old directory will contain link to new file
+    - Indirect block could get reused before old inode cleared
+        Random file data will get interpreted as block pointers
+    - fsck cannot fix these
+  * Log structured file system/shadow paging (LFS)
+    - May end up with pointer to old file system state before the delete
+        But always consistent--blocks never overwritten while pointed to
+    - fsck/mount could roll forward log to lose less state
+  * Journaling/write-ahead logging (XFS)
+    - Can end up with same problems as ext2fs
+    - But fsck replays log to bring file system into consistent state
+
+Advantages/disadvantages of FFS:
+  + create/delete operations always survive after a crash
+  - Chunks of deleted files resurface in unexpected places
+  - fsck takes a long time
+
+What are advantages/disadvantages of LFS & Journaling
+  * LFS
+    - Cleaner overhead: many open questions in how to clean properly
+  * Journaling
+    - Must perform more metadata writes (once in log, once in file system)
+    - Chunks of deleted files can resurface?  (Probably--no solution in paper)
+  * Both
+    - Contention for lock at end of log?
+    - fsync must wait for other files' data
+    + Most operations don't require synchronous disk writes
+    + fsck/mount is fast
+    + True atomic rename
+    - Create/delete requires writes even for short-lived files
+
+Without logging, what is correct order in which to write info to disk?
+  1. Never write pointer before initializing the structure it points to
+  2. Never reuse a resource before nullifying all pointers to it
+  3. Never clear last pointer to live resource before setting new one
+
+So what are goals of this paper?
+  * Eliminate most synchronous disk writes
+  * Make fsck much faster, or at least don't wait for it to restart
+  * Fix resurrected data problem
+
+What is scheduler-enforced ordering?
+  * Usually, scheduler orders requests on disk queue to optimize performance
+  * Enforced ordering says block A must be written before block B
+      So now schedule may be able to do A & B in same pass
+      System calls can return before any of the writes have completed
+  + Gives 30% performance improvement
+  - But makes writes async, not delayed -- does not reduce # of writes
+      Create 2 files in same dir, second create will wait for locked dir block
+      Create then delete file, delete will wait for locked blocks
+
+What about using NVRAM
+  * Use memory that can survive a crash or power failure
+  - Requires special hardware
+  - If machine fails, can't just move disk to new machine (need NVRAM state)
+
+Straw man:  Keep inter-buffer dependencies?
+    Delay all writes (like ext2fs)
+    But keep dependency ordering in buffer cache
+    Order all writes to avoid bad ext2fs states
+  Problem:  Dependency cycles and false sharing
+    Several inodes or directory entries in same block
+    Example:  figure 1
+    - Create file A, delete file B, same dir/inode blocks
+        Can't write directory until inode A initialized
+        Can't write inode B until pointer cleared in directory
+    Why can't you write inode B until pointer cleared? (see footnote 2)
+    - Have to make sure it isn't reallocated
+    - Fsck would have to check every directory entry before restart (slow)
+    - Otherwise, might get incorrect link count
+        deleting file would clear inode even when another link existed!
+  Problem:  Crash might occur between ordered but related writes
+    E.g., summary information wrong after block freed
+  Problem:  Block aging
+    Block that always has dependency will never get written back
+
+What are soft updates?
+  * Data structure for each updated field or pointer, contains:
+    - old value
+    - new value
+    - list of updates on which this update depends
+  * Can write blocks in any order
+    - But must temporarily undo updates with pending dependencies
+    - Must lock rolled-back version so applications don't see it
+    - Choose ordering based on disk arm scheduling
+  * p. 134: other dependencies can "be more efficiently handled by
+        postponing in-memory updates until after the updates on
+        which they depend reach stable storage."
+
+Example:  Create A delete B revisited
+  * See figure 2 - requires directory to be written twice?
+  * What if inode written first?
+  * How many writes required in XFS?
+      3 - one for log, one for inode block, one for directory block
+  * How many in LFS?
+      All part of one big write (+ checkpoint for many updates)
+
+Four main structural changes requiring sequenced updates:
+  1. Block allocation
+       Must write:  disk block, free map, pointer
+       Req: Disk block & free map must be written before pointer
+       Use: Undo/redo on pointer (+ possibly file size)
+  2. Block deallocation
+       Must write:  previous pointer, free map
+       Just update free map after pointer written
+       Or, immediately deallocate blocks if pointer was never written to disk
+         How do you know?  (there will be a dependency structure)
+  3. Link addition
+       Must write:  Directory entry, inode, and free map (if new inode)
+       Req: inode and free map must be written before dir entry
+       Use: Undo/redo on i-number in dir entry (ignore entries w. ino 0)
+  4. Link removal
+       Must write:  Dir. entry, inode and free map (if nlinks==0)
+       Req: Decrement nlinks only after pointer cleared
+       Use: Clear directory entry immediately
+            decrement in-memory nlinks once pointer written
+            If directory entry was never written, decrement immediately
+
+Issues
+  * fsync
+    - Must ensure names for files are also stably on disk
+    - Must ensure names of parent directories are stably on disk!
+        keep data structures to track such dependencies
+        recurse to higher level directories
+        but parent directories can be written in any order, so still
+		good disk arm scheduling
+  * unmounting a file system
+    - May need to flush dirty buffers multiple times
+  * memory usage
+    - Deleting large directory trees--memory goes faster than disk
+    - Cap number of directory structures allocated
+  * useless write-backs
+    - syncer wrote many blocks at once--worst case
+      even with circular dependencies better to write one at a time
+    - LRU evection scheme tweaked to know about dependencies
+  * fsck - split into to parts:  Foreground and Background
+    - Quick:  What must be done before remounting FS
+        Need to make sure per-cylinder summary info makes sense
+	Recompute free block/inode counts from bitmaps -- very fast
+	Will leave FS consistent, but might leak disk space
+    - Full:  Traditional fsck operations
+        May be done in background after mounting to recuperate free space
+        Must be done in forground after a media failure
+	Differences from traditional FFS fsck
+          May have many, many inodes with non-zero link counts
+          Don't stick them all in lost+found (unless media failure)
+
+Performance
+  * Figure 3:  Is this what we expect?  yes
+    - Why the dip after 64KB?
+       Write coalescing in 64K chunks
+       Indirect block kicks in at 104K
+    - How would you expect LFS and XFS to do here?
+       LFS - probably better (no seeks)
+       XFS - For small files, between conventional and soft-updates,
+             since more writes needed.  For larger files, possibly
+	     better that soft updates, since extent maps probably
+	     avoid indirect blocks.
+  * Figure 4:  How does soft updates beat No Order?
+    - Soft updates defers the work from actually removing files.  With
+      soft updates, unlink system call can actually return even if the
+      inode and indirect block are not in the buffer cache!  No Order
+      must at least read inode and indirect block into memory (can see
+      big dip at 104K where indirect block kicks in).
+  * Figure 5:  How does soft-updates beat no order?
+    - Artifact of benchmark:
+        reallocation is process of coalescing writes into 64K chunks
+          sometimes relocate blocks to do this.  May be farther from
+          indirect block if old space freed and made available
+  * Figure 6:  Pretty good, yes?
+  * Figure 7:
+      How does concurrency hurt convenional?  less locality
+      Helps soft-updates because more flexibility in disk scheduling
+        too much concurrency just adds overhead
+  * Figure 8:  journaling has cost
+
+Limitations of soft updates:
+  * Not as general as logging, e.g., no atomic rename
+      might be hard to use b-trees requiring atomic updates to several blocks
+  * Metadata updates might proceed out of order
+      create /dir1/a than /dir2/b
+      after crash /dir2/b might exist but not /dir1/a
+  * Suppose you rename a directory called dir/short:
+      % mv dir/short dir/much_longer_name_that_does_not_fit
+      FFS needs to put longer name in a different directory chunk
+      If crash before old name removed, might have two names for directory
+      Can soft updates correct this?  (don't know...)

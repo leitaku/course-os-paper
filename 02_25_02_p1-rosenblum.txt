@@ -24,6 +24,14 @@ Dynamically changing __inode map__ is used to determine current inode location. 
   All blocks that were recently written are at the tail end of log
   No need to check whole file system for inconsistencies
 
+* Log
+Contains data blocks, i-node blocks, blocks of i-node map, segment summaries and directory change log
+
+* Checkpoint area
+Contains
+Address of end of log at checkpoint time
+Addresses of all i-node map blocks at checkpoint time
+
 --- Segments
 
 Must maintain large free extents for writing new data
