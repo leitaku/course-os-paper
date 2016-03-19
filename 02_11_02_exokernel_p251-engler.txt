@@ -1,0 +1,40 @@
+# Exokernel
+
+## Introduction
+* Exokernel offers a lower-level exposure of H/W, with no abstraction.
+* Exokernel only securely multiplexes available hardware resources.
+* Applications can benefit greatly from having more control over how machine resources are used to implement higher-level abstractions.
+* Exokernel separates protection from management.
+The architecture is as below.
+             +-----------------+     +-----------------+
+             |       App       |     |       App       |
+             |                 |     |                 |
+             +-----------------+     +-----------------+
+             |      Lib OS     |     |      Lib OS     |
+             |                 |     |                 |
+             +-----------------+     +-----------------+
+       +-----------------------------------------------------+
+                               Exokernel
+       +-----------------------------------------------------+
+
+                                  H/W
+## OS Style
+* Run apps of many types
+* Run a dedicated app, e.g., web server, DB server.
+* Library OS
+  OS is linked into App as a Library OS. Since Lib OS is not trusted by Exokernel, they are free to trust the application.
+
+## Exokernel
+* Exokernel manages resource allocation, multiplexes and exports physical resources securely through a set of low-level primitives. Exokernel separates protection from management.
+    1. Track ownership of resources
+    2. Ensure protection by guarding all resource usage or binding points
+    3. Revoke access to resources
+* Exokernel exports all privileged instructions, hardware DMA capabilities, and machine resources. Each exported operation can be encapsulated within a system call that checks the ownership of any resources involved. Exokernel should only manage resources to the extent required by protection.
+
+## Secure Bindings
+* An exokernel allows library OS to bind to resources using secure bindings. Exokernel provides protection for mutually distrustful Apps.
+* A secure binding is a protection mechanism that decouples authorization from the actual use of a resource. One example is a TLB entry, when a TLB fault occurs the mapping of virtual to physical addresses in a lib OS page table is performed and then loaded into the kernel (bind time), and then used multiple times (access time).
+    1. Hardware support
+    2. Cached in exokernel, for instance, an exokernel can use a large software TLB to cache address translations that do not fit in the hardware TLB.
+    3. Download code into the kernel. The code invoked on every resource access or event to determine ownership and the actions that the kernel should perform. This can avoid expensive crossings.
+* ASH is downloaded into kernel, to do packet filter. A packet comes in, Exokernel analyzes it, and sends it out to the right App. This is more efficient than the Exokernel querying all the server processes on every incoming packet to determine who the packet was for.
