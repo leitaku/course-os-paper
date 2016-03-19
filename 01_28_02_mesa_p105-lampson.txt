@@ -82,15 +82,3 @@ Exceptions:
   The idea that you just kill a process and release the locks is naive
   Entry procedures that have an exception, but no exception handler do not release the monitor lock
     This ensures deadlock and a trip into the debugger, but at least it maintains the invariant
-
-
-
-
-
-
-
-
-
-
-
-
