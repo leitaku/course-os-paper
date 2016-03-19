@@ -1,0 +1,112 @@
+Scheduler Activations: Effective Kernel Support for the User-level Management of Parallelism
+========================================================================
+Managing Concurrency Using Threads
+
+User-level library
+  Management in application’s address space
+  High performance and very flexible
+  Lack functionality
+Operating system kernel
+  Poor performance (when compared to user-level threads)
+  Poor flexibility
+  High functionality
+New system: kernel interface combined with user-level thread package
+  Same functionality as kernel threads
+  Performance and flexibility of user-level threads
+========================================================================
+User-level Threads
+
+Thread management routines linked into application
+No kernel intervention == high performance
+Supports customized scheduling algorithms == flexible
+(Virtual) processor blocked during system services == lack of functionality
+  I/O, page faults, and multiprogramming cause entire process to block
+
+Kernel Threads
+
+No system integration problems (system calls can be blocking calls) == high functionality
+Extra kernel trap and copy and check of all parameters on all thread operations == poor performance
+Kernel schedules thread from same or other address space (process)
+Single, general purpose scheduling algorithm == lack of flexibility
+========================================================================
+Kernel Threads Supporting User-level Threads
+
+Can we accomplish system integration by implementing user-level threads on top of kernel threads?
+Typically one kernel thread per processor (virtual processor)
+  User-level thread blocks, so does kernel thread: processor idle
+  More kernel threads implicitly results in kernel scheduling of user-level threads
+  Increasing communication between kernel and user-level will negate performance and flexibility advantages of using user-level threads
+
+No, Also:
+No dynamic reallocation of processors among address spaces
+Cannot ensure logical correctness of user-level thread system built on top of kernel threads
+
+========================================================================
+New Thread Implementation
+
+Goal: System with the functionality of kernel threads and the performance and flexibility of user-level threads.
+
+High performance without system calls.
+Blocked thread can cause processor to be used by another thread from same or different address space.
+No high priority thread waits for processor while low priority runs.
+Application customizable scheduling.
+No idle processor in presence of ready threads.
+
+Challenge: control and scheduling information distributed between kernel and application’s address space.
+========================================================================
+Virtual Multiprocessor
+Application knows how many and which processors allocated to it by kernel.
+Application has complete control over which threads are running on processors.
+Kernel notifies thread scheduler of events affecting address space.
+Thread scheduler notifies kernel regarding processor allocation.
+========================================================================
+Scheduler Activations
+Vessels for running user-level threads
+One scheduler activation per processor assigned to address space.
+Also created by kernel to perform upcall into application’s address space
+  “Scheduler activation has blocked”
+  “Scheduler activation has unblocked”
+  “Add this processor”
+  “Processor has been preempted”
+Result: Scheduling decisions made at user-level and application is free to build any concurrency model on top of scheduler activations.
+========================================================================
+New Thread Implementation
+
+Goal: System with the functionality of kernel threads and the performance and flexibility of user-level threads.
+
+High performance without system calls.
+No high priority thread waits for processor while low priority runs.
+Blocked thread can cause processor to be used by another thread from same or different address space.
+Application customizable scheduling.
+No idle processor in presence of ready threads.
+
+Challenge: control and scheduling information distributed between kernel and application’s address space.
+========================================================================
+Processor allocation
+
+Goal: No idle processor in presence of runnable threads.
+
+Processor allocation based on available parallelism in each address space.
+Kernel notified when:
+  User-level has more runnable threads than processors
+  User-level has more processors than runnable threads
+Kernel uses notifications as hints for its actual processor allocation.
+========================================================================
+Implementation
+
+Scheduler activations added to Topaz kernel thread management.
+  Performs upcalls instead of own scheduling.
+  Explicit processor allocation to address spaces.
+Modifications to FastThreads user-level thread package
+  Processing of upcalls. 
+  Resume interrupted critical sections.
+  Pass processor allocation information to Topaz.
+========================================================================
+Performance
+Thread performance without kernel involvement similar to FastThreads before changes.
+Upcall performance significantly worse than Topaz threads. 
+  Untuned implementation.
+  Topaz in assembler, this system in Modula-2+.
+Application performance
+  Negligible I/O: As quick as original FastThreads.
+  With I/O: Performs better than either FastThreads or Topaz threads.

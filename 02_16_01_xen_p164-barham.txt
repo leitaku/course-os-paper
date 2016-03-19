@@ -103,7 +103,7 @@ Xen: A high performance resource-managed x86 virtual machine monitor
     If permitted, Xen will also reorder requests to improve performance
   Use DMA (zero copy)
 ========================================================================
-Performance
+Performance 
   Close and outperform others
   Performance isolation works as expected
   Memory usage enough for running 100 domains on a server

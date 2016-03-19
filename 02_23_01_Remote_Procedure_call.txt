@@ -1,0 +1,126 @@
+Implementing Remote Procedure Calls
+========================================================================
+Introduction
+We saw managing OS control flow over one shared-memory using:
+  Procedural (thread-based) Model
+  Message passing (event-based) Model
+A procedural (thread-based) programming abstraction based on message passing (event-based) substrate. 
+  Threads passed from one machine to the other and back again.
+  Programmer unaware of the underlying message-based substrate
+========================================================================
+Design Decisions (Any Alternatives)
+Message passing
+  Same reliable and efficient message (and reply) problems
+  Procedure calls are the Major transfer mechanism in Mesa. (Remember Duality)
+Remote fork
+  No major changes in design problems 
+Shared Address space
+  Integration of remote address spaces 
+  Efficiency issues 
+========================================================================
+Goals of implementing RPC
+Simplicity
+  Make RPC as similar to procedure calls as possible
+  Make distrusted computation easier
+Efficiency 
+  Make sematic of RPC package as powerful as possible without losing efficiency or simplicity 
+Security
+  Secure end-to-end communications with RPC
+========================================================================
+Implementing
+RPC Facility Structure 
+  Caller Machine
+    User (user application code module)
+    User-Stub
+    Caller instance of RPCRuntime (RPC communications package)
+  Callee Machine 
+    Server (server code module)
+    Server-stub
+    Callee instance of RPCRuntime
+
+Binding Process
+How does a client of the binding mechanism specify what he want to be bound to?
+Naming
+
+How does the caller specify the callee machine address and the specific procedure he wants to invoke?
+Locating
+
+Naming (Interface Name)
+Type: Which interface the caller expect the callee to implement. 
+  Service Name (e.g Mail-server)
+Instance: Which particular implementer of an abstract interface is desired.
+  Machine Address (e.g Specific mail-server address)
+
+Locating Design ideas
+1- Include network address in user application: Too early binding
+2- Broadcasting Protocol 
+  Too much interference with innocent bystanders 
+  Not convenient for binding machines not in the same local network.
+
+Binding Mechanism Advantages 
+Importing an interface has no effect on the data structure of the exporting machine
+The use of UID means that bindings are implicitly broken if the exporter crashes and restarts.
+Restricting the set of users who can update Grapevine DB .
+  To avoid security problems.
+Several choices of binding time
+  Importer specifies the type only
+  Binding at compile-time, by delaying the instance value
+
+Packet-Level Transport Protocol 
+Substantial performance gains 
+Minimize the elapsed real-time between initializing a call and getting results.
+  Unacceptable to have large amount of state info.
+  Unacceptable to have an expensive handshaking.
+Guarantee  procedure in the server has been invoked precisely once. 
+
+Is There A “Stack Ripping”?
+In manual stack management the necessary data is taking off the stack and then putting it on the heap. 
+In RPC it’s taking off the stack and putting it in a message.
+  Sent to the other side.
+Very similar to taking the state off the stack and putting it in a continuation. 
+  Executed by a separate event handler.
+========================================================================
+Data integrity and security
+
+Exception Handing (Remote Process Exception) 	
+Two level of exception
+  Communication Failure Exception (Explained with complicated call example), considered to be the primary difference between procedure call and RPC
+  Remote Process Exception
+
+Security
+RPC package and protocol provides Encryption-based security of calls
+  End-to-end encryption of calls and results
+  Detect tempts of modification, reply, or creation of calls.
+Restricted set of users who can update Grapevine DB.
+  Exporting services is restricted 
+Grapevine DB used as authentication service.
+========================================================================
+Optimizations and Evaluations
+Optimizations
+Use of idle processes  in caller and callee machines to reduce process creation and process swaps.
+The use of process source and destination allow processes to get the packets they’re waiting for directly.
+Use of subsequent packet for implicit acknowledgments of previous packets.
+Avoid the cost of establishing and termination connection by the implementation of packet-level protocol.
+
+Performance evaluation 
+They’ve measured the elapsed time between two machines for 12,000 calls for each of the following procedures:
+  0-10 arguments/results.
+  1-100 word array.
+  Caller Resume and unwind exception handling.
+
+Performance summary
+For transferring large amounts of data in one direction products other than RPC have advantage. 
+Transfer fewer packets in the other direction
+They haven’t measure the performance of exporting or importing interfaces.
+Used by:
+  Alpine [File server supports multi-machine transactions]
+  Control communication for an Ethernet-based for telephone and audio project
+  Networking games.
+========================================================================
+Conclusion
+RPC is one of the techniques used in communication between processes outside their address space boundaries.
+Make distributed programming easier.
+RPC protocol for avoiding communications overhead.
+Considered to be the first protocol suite that provides security in open network communications. 
+RPC succeed in providing reliability and integrity for data and control transfer.
+More work needs to be done (By now, I think there is a lot of work that has been done)

@@ -1,0 +1,56 @@
+Lottery Scheduling: Flexible Proportional-Share Resource Management
+========================================================================
+Significance of the Paper
+This paper presents a randomized scheduling algorithm that is easy to implement and facilitates modular resource manangement. It provides efficient and responsive control over the relative execution rates of computations and can be generalized to manage diverse resources.
+========================================================================
+Key Ideas
+Instead of using absolute priority values, lottery tickets can be used to represent resource rights in an abstract, relative and uniform way.
+========================================================================
+Important Issues
+
+1. Lotteries
+
+list-based, sequential search
+list-based with move-to-front heuristics
+tree of partial ticket sums
+Starvation free: any client with a non-zero number of tickets will eventually win a lottery.
+
+2. Tickets Transfer
+
+using ticket transfer to redirects the client's resource rights to the server that is computing on its behalf.
+
+Merits: solve priority inversion in a way similar to priority inheritence.
+
+3. Tickets Inflation
+
+inflation and deflation can be used to provide flexible control for some applications (e.g. Monte-Carlo algorithm, graphics-intensive programs).
+
+4. Ticket Currencies
+
+Use currency abstraction to flexibly isolate or group tasks.
+
+5. Compensation Tickets
+
+Compensation tickets are used to help a client who does not consume its entire allocated quantum to get its entitled share.
+========================================================================
+Experiments
+
+The experiments cited in this paper emphasize on the fact that throughput and response time of different clients closely tracked to their ticket allocation ratio:
+
+With scheduling quantum of 100 milliseconds, fairness can be achieved over 8 seconds intervals. With scheduling quantum of 10 miliseconds, fairness can be achieved over subsecond intervals, provided that scheduler overhead can be bounded.
+
+Their conclusion:
+
+Conventional priority mechanisms have drawbacks (arbitrarily assigned priorities, crude control over scheduling, inadequate for insulating resource allocation policies for different modules, difficult to abstract inter-module priority relationships).
+
+Lottery scheduling, on the other hand, efficiently implements proportional-share resource management and provides excellent support for modular resource management. It can also be generalized to manage many diverse resources, such as I/O bandwidth, memory, and mutex.
+========================================================================
+Questions
+
+1. If priority themselves are rarely meaningfully assigned, how about ticket allocations?
+
+2. For many users, it is more desirable to have predicated, regular response time.
+
+3. It suggested a manager thread be allocated a fixed percentage of funding to cause it be invoked periodically. This cannot be assured under randomization.
+
+4. Normally, we consider a system to be starvation free only if it has some mechanisms to guarantee that any process won't be kept waiting for an unreasonably long period of time. In this sense, lottery scheduling cannot guarantee deadlock free.
