@@ -1,0 +1,18 @@
+FFS improvement is based on the assumption that disk seek is expensive.
+Optimizes read and write simultaneously
+
+# Solution: Cylinder groups and larger block size (with fragment to reduce waste)
+
+FFS allows parameterizing a file system. Each file system is parameterized so that it can be adapted to the characteristics of the disk on which it is placed. To ease the calculation of finding rotationally optimal blocks, the superblock contains rotational layout tables.
+
+# Other improvement: two distinct layout policies, global policy and local policy.
+
+Global allocator allocates cylinder groups
+Local allocator allocates blocks within cylinder group.
+
+Introduced new features:
+* Long file names
+* advisory locks on files
+* Symbolic links
+* More robust system call
+* Quota mechanism (90% soft quota and hard quota)
