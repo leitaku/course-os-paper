@@ -1,0 +1,102 @@
+The Rio File Cache: Surviving Operating System Crashes
+
+SUMMARY
+
+This paper describes the Rio File Cache, which uses a combination of hardware- and software-based protection techniques to make the contents of RAM persistent across warm reboots, thereby eliminating the need for the periodic writes to disk traditionally done for the sake of reliability.  Their technique enables systems to have a RAM filesystem cache that is at least as fast as a write-back cache while
+being at least as safe as a write-through cache.
+
+They implemented their prototype on DEC Alphas running Digital UNIX - an important point because the buffer cache on these systems is always located in the same block of physical RAM and is never paged.  So their problem essentially reduces to making sure nothing messes with this area of RAM during a crash and during warm reboot.  (OK, they also maintain their own "registry" of metadata that normally wouldn't be so easy to find after reboot, so what goes for the buffer cache goes for this registry, as well.)  They use a combination of hardware VM protection and program re-writing (inserting address checks before instructions that might write to the protected area) to implement protection.
+
+----------------------------------------------------------------------
+
+EVALUATION
+
+The greatest strength of this approach is its simplicity: it shows that even during a software system crash, volatile RAM serves as reliable repository for files. The approach is high-performance, and works to protect against software system crashes as well as some memory corruption errors (when protection is included).
+
+In my opinion, this approach has one fatal flaw, depending on asystem's reliability requirements: RIO presumes that a hardware error never occurs. Their approach appears sufficient to protect against software crashes, but they weasel around hardware errors by saying, if the system board fails, it should be possible to move the memory board to a different system without losing power or data. Their approach does nothing to protect against presumably rare catastrophic
+hardware failures, especially those that affect memory or the memory bus. But maybe I'm being a stick in the mud.
+
+FYI, the authors responses to common objections are at:
+http://www.eecs.umich.edu/Rio/faq.html
+
+----------------------------------------------------------------------
+
+The most important idea turns out to be that of the warm reboot. It is rather unexpected that this idea does so well.  Warm reboots are the only new idea introduced in the paper.  The others have minimal impact and importance.
+
+----------------------------------------------------------------------
+
+The originality of the idea sounds interesting. The results in performance seem to show that the implementation was successful. I am curious to see how the system performs in a real environment since many of the experiments were done introducing artificial failures so that the system might crash.
+
+----------------------------------------------------------------------
+
+Another cool trick done on a commodity operating system - retrofit always deserves high marks.  I wonder how much of this technique depends on the fact that digital UNIX keeps its buffer cache in the same locating in physical memory on every boot, though. How applicable would this be to Linux kernels, or Windows kernels?
+
+----------------------------------------------------------------------
+
+The clear strengths of the approach are that the resulting system can combine both reliability and performance. The filesystem modifications allow for a recovery after system crash of file data *without* the need to constantly write to disk. Essentially, the authors use the protection mechanism of the virtual memory system to prevent unauthorized modifications to the file cache.  I don't actually consider this a very "language-based" system, but it serves as a good example of an application of memory safety.
+
+One aspect of the paper that was unconvincing was the testing
+portion, which introduced seemingly arbitrary faults with no clear explanation for why they were chosen. The authors correctly point out the difficulty in simulating arbitrary system failure, but the work really focuses on a narrow set of faults in the grand scheme of things. They rule out (for good reason) power failure and hardware failures, but don't provide any good evidence for the commonality or nature of OS faults that result in warm reboot.
+
+----------------------------------------------------------------------
+
+The goal of the Rio project is to use memory as a reliable file store across OS crashes.  Their approach is to protect the memory from interference during normal operation, even from the kernel, and leave information for bootstrapping the memory cache in a well known location in physical memory.  They preferred to achieve memory protection through hardware means, but they also allowed for the use of program rewriting (called "code patching" in the paper) to achieve protection (at a performance cost).  First and foremost, with their system they provide fast and reliable storage at low cost (as opposed to using a solid state disk that has similar characteristics but is priced out of the budget of most people).
+
+Second, they use the technique of fault insertion, where they transform the code to introduce faults.  This seems novel to me.
+
+Like the SPIN paper, they use a dead architecture.  Moreover, their system won't port to x86, the most popular architecture, because the memory isn't usable across warm boots. This severely limits Rio's usability in a practical sense.
+
+Furthermore, in my experience (which is admitedly anecdotal), most sudden faults come from faulty disk drives and power supplies, not bad kernel modules (excepting faults in DFS on Solaris systems).
+
+----------------------------------------------------------------------
+
+The authors make a case for using memory as a persistent store by making it complex to access particular regions. Their argument is that disks are perceived to be safer because of the inherent complexity in accessing them. They therefore try to ensure that memory regions are protected by mechanisms which force software to go through steps (which makes the operation possibly as complex) so that disk and
+memory are equally likely to be corrupted in crashes. Somehow this does not seem to be very convincing. Disk are considered much more reliable probably because we know that they are not a volatile store. So, the entire motivation for the paper seems flimsy at a first glance.
+
+----------------------------------------------------------------------
+
+RESEARCH
+
+I wonder if using RIO with protection created by SFI or some other scheme would give an even greater performance boost. I know they claim that RIO is all you would need, but would some sort of hybrid asynchronous/RIO approach give you some higher level of protection against hardware faults, without all of the RIO performance gains.
+
+----------------------------------------------------------------------
+
+It would be interesting to know if there are any other software based methods for achieving the same isolation results.
+
+----------------------------------------------------------------------
+
+I'm curious to know what data structures on Linux might be made persistent across reboots in this way.  Linux kernel memory isn't paged, so it seems there might be some chance.  However, I fear that most interesting data structures may be heap-allocated, and may consequently not be in the same location on each boot.
+
+----------------------------------------------------------------------
+
+Extension of this technique to other modules and the kernel in general would be nice. Data other than just that of the filesystem gets corrupted on system failure and new techniques such as microreboot are interesting ideas for compartmentalizing, protecting, and restoring systems while keeping system state alive and well.
+
+----------------------------------------------------------------------
+
+I would like to see an implementation on other operating systems and architectures, such as Solaris and Linux (except on x86, of course). Also, perhaps this could be adapted to x86 by modifying the way the kernel handles faults -- perhaps it could wipe all non-cache kernel memory and re-initialize by itself, instead of requiring and actual boot. I would also like to see this sort of protection for other things across boots, such as network connections. In terms of the software protection mechanisms, it might be useful to see if static
+analysis techniques can improve the performance (if its necessary -- it seems that all major architectures implement the hardware protection needed).
+
+----------------------------------------------------------------------
+
+Would be interesting to explore what issues arise and what can be done in the case of deliberate faults in the software that corrupt memory.
+
+========================================
+Another version:
+
+
+Key ideas: avoid reliability-related file system writes to disk; instead, make RAM used for files reliable by:
+
+1) adding battery backup to deal with power failures
+2) protecting the the file cache using either SFI or VM tricks
+3) supporting "warm reboot" in which old file cache memory is restored following a failure.
+
+Point 2) uses VM in that all all accesses to file cache pages go through the virtual memory system (i.e. the TLB and page tables, though they just say the TLB); we do not permit direct physical addressing. This way, we can set the pages as read-only except when they must actually be written to by the file cache subsystem.
+
+ Using VM, rather than SFI, is great since it incurs no additional  overhead (except the cost of actually flipping the bits on the  table): this is because the kernel is already running in supervisor  mode, and thus does not require a trap. Using SFI would add extra overhead.
+
+ Protection in general is more useful than disk-related reliability mechanisms because any illegal attempt to write to a file cache page will be fail-stop: the system will panic immediately, rather than corrupt the datastructure and permit bad data eventually to get written to disk.
+
+Point 3) requires some reworking of the way the file cache is written so that the datastructure is always in a stable state. This can be done by making changes to "shadow copies" and then atomically linking the change into the persistent data structure.
+
+ This is basically like general-purpose persistence, but without language support: no transactions, no garbage collection. However, language support would make a lot of sense, particularly transactions. The GC part is not needed since all RAM is persistent
+ (though not all CONSISTENT), and thus we don't need the reachability part.
