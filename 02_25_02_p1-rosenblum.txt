@@ -1,0 +1,34 @@
+The Design and Implementation of a Log Structured File System
+
+Used in Sprite, improvement done by caching
+
+* Larger memory sizes mean larger caches
+  Caches will capture most read accesses
+  Disk traffic will be dominated by writes
+  Caches can act as write buffers replacing many small writes by fewer bigger writes
+  Key issue is to increase disk write performance by eliminating seeks
+
+Instead of optimizing read (it can be optimized with cache easily), Sprite(LFS) optimizes write (Wite needs to be fast to guarantee cache not getting full.)
+
+Segments for free space management (segment summary is used when trying to determine data validity).
+
+Dynamically changing __inode map__ is used to determine current inode location. Unlike Unix FFS where inode is in fixed location.
+
+* Inode map maintains the location of each i-node
+  Blocks at various location on disk
+  Active blocks are cached in main memory
+
+* A fixed checkpoint region on each disk contains the addresses of all inode map blocks
+
+* Faster recovery after a crash
+  All blocks that were recently written are at the tail end of log
+  No need to check whole file system for inconsistencies
+
+--- Segments
+
+Must maintain large free extents for writing new data
+Disk is divided into large fixed-size extents called segments (512 kB in Sprite LFS)
+Segments are always written sequentially from one end to the other
+Old segments must be cleaned  before they are reused
+
+See attached ppt for more details.
